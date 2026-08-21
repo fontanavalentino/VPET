@@ -1,0 +1,6 @@
+{
+  "pulsanti_statici": 53,
+  "pulsanti_senza_click": 0,
+  "funzioni_onclick_non_definite": [],
+  "javascript": "OK"
+}

@@ -1,0 +1,5 @@
+{
+  "buttons_without_onclick": 0,
+  "javascript": "OK",
+  "dashboard_people_cards": 5
+}

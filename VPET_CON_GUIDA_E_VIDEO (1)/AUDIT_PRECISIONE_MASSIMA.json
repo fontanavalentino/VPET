@@ -1,0 +1,17 @@
+{
+  "base": "VPET_DASHBOARD_SMART_TOOLS + all previous additions preserved",
+  "button_tags_or_templates_checked": 137,
+  "buttons_without_onclick": [],
+  "buttons_with_empty_onclick": [],
+  "onclick_function_names_checked": 30,
+  "undefined_onclick_functions": [],
+  "duplicate_function_definitions": {},
+  "getElementById_targets_missing_from_source": [],
+  "javascript_syntax": "OK",
+  "food_archive_entries": 256,
+  "toxin_archive_entries": 101,
+  "faq_entries_preserved": 117,
+  "people_cards_preserved": "9+",
+  "care_sections_preserved": 7,
+  "rule": "ADD ONLY"
+}

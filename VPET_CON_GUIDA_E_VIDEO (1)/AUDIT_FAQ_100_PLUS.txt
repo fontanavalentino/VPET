@@ -1,0 +1,14 @@
+{
+  "faq_total": 117,
+  "categories": {
+    "Fine vita & memoria": 12,
+    "Leggi & responsabilità": 20,
+    "Viaggi & trasporti": 20,
+    "Salute & prevenzione": 20,
+    "Alimentazione & allergie": 15,
+    "Gatti & lettiera": 15,
+    "Comportamento & convivenza": 15
+  },
+  "buttons_without_onclick": 0,
+  "javascript": "OK"
+}

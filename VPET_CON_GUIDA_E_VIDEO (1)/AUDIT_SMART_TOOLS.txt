@@ -1,0 +1,9 @@
+{
+  "added_tools": 6,
+  "food_quick_checks": 15,
+  "toxic_quick_checks": 9,
+  "existing_faq_retained": 117,
+  "buttons_without_onclick": 0,
+  "javascript": "OK",
+  "rule": "ADD ONLY"
+}

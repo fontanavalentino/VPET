@@ -1,0 +1,14 @@
+VPET - AUDIT PRECISIONE MASSIMA
+
+Pulsanti/template controllati: 137
+Pulsanti senza onclick: 0
+Onclick con funzione non definita: 0
+Funzioni duplicate: 0
+Target getElementById mancanti: 0
+JavaScript: OK
+Archivio Può mangiarlo?: 256 alimenti
+Archivio È tossico?: 101 rischi/sostanze
+FAQ esistenti mantenute: 117
+Regola: ADD ONLY
+
+Nota: il browser headless dell'ambiente blocca l'apertura locale per policy, quindi l'audit runtime automatico non è stato dichiarato come eseguito. Il controllo effettuato è su struttura HTML/JS, handler, funzioni, ID e sintassi.

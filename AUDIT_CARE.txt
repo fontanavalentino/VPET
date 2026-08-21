@@ -1,0 +1,8 @@
+{
+  "base": "VPET_MAX_PLUS (dashboard non ridisegnata)",
+  "new_deep_sections": 7,
+  "deep_content_cards": 59,
+  "myth_cards": 18,
+  "whatsapp": "presente in ogni nuova guida",
+  "javascript": "OK"
+}

@@ -1,0 +1,6 @@
+{
+  "people_total": 9,
+  "new_people_added": 4,
+  "buttons_without_onclick": 0,
+  "javascript": "OK"
+}
