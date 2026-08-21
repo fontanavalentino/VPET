@@ -1,6 +1,8 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "buildCommand": "node build-vpet.mjs",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/(.*)",
