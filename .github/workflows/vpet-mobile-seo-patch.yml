@@ -16,21 +16,73 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path('VPET_CON_GUIDA_E_VIDEO (1)/index.html')
           s=p.read_text()
-          # SEO base metadata
-          s=s.replace('<meta name="theme-color" content="#05090d"><title>VPET</title>', '''<meta name="theme-color" content="#05090d"><title>VPET | Guide e strumenti per cani e gatti</title>\n<meta name="description" content="VPET: guide, strumenti e contenuti su alimentazione, allergie, lettiere, razze, adozioni, viaggi e benessere di cani e gatti.">\n<meta name="robots" content="index,follow,max-image-preview:large">\n<link rel="canonical" href="https://vpet.it/">\n<meta property="og:type" content="website"><meta property="og:site_name" content="VPET"><meta property="og:title" content="VPET | Guide e strumenti per cani e gatti"><meta property="og:description" content="Scopri guide e strumenti VPET per vivere meglio con il tuo animale."><meta property="og:url" content="https://vpet.it/">''')
-          # Remove desktop-forcing mobile rule
+
+          # 1) Repair the JavaScript syntax error that stops later buttons/subcategories.
+          s=s.replace(',......v]', ',...v]')
+
+          # 2) SEO base metadata (idempotent).
+          if '<title>VPET</title>' in s:
+            s=s.replace('<meta name="theme-color" content="#05090d"><title>VPET</title>', '''<meta name="theme-color" content="#05090d"><title>VPET | Guide e strumenti per cani e gatti</title>\n<meta name="description" content="VPET: guide, strumenti e contenuti su alimentazione, allergie, lettiere, razze, adozioni, viaggi e benessere di cani e gatti.">\n<meta name="robots" content="index,follow,max-image-preview:large">\n<link rel="canonical" href="https://vpet.it/">\n<meta property="og:type" content="website"><meta property="og:site_name" content="VPET"><meta property="og:title" content="VPET | Guide e strumenti per cani e gatti"><meta property="og:description" content="Scopri guide e strumenti VPET per vivere meglio con il tuo animale."><meta property="og:url" content="https://vpet.it/">''')
+
+          # 3) Remove the desktop-forcing mobile rule.
           s=s.replace('''@media(max-width:700px){\n body{overflow-x:auto}\n .wrap{min-width:980px}\n .modal{align-items:flex-end}\n}''','''@media(max-width:700px){\n html,body{width:100%;max-width:100%;overflow-x:hidden}\n .wrap{width:100%;min-width:0;max-width:100%;overflow:hidden}\n .dash{width:100%;height:auto;display:block}\n .modal{align-items:flex-end}\n .sheet{width:100%;max-width:100%;padding:16px;max-height:92dvh}\n .grid,.actionRow{grid-template-columns:1fr}\n button,a{touch-action:manipulation}\n}''')
-          # Extra responsive safety net before closing style
+
+          # 4) Responsive safety net.
           marker='/* VPET MOBILE FIX 2026 */'
           if marker not in s:
             css='''\n/* VPET MOBILE FIX 2026 */\n@media(max-width:700px){\n.dashboardExtension{padding:18px 14px 80px}.dashExtHead{align-items:flex-start;flex-direction:column}.dashboardCardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboardMiniGrid{grid-template-columns:1fr}.dailyCard{grid-template-columns:44px 1fr 20px}.mediaHero{padding:18px;min-height:220px}.mediaHero h3{font-size:25px}.mediaHero:before{right:14px;top:12px;font-size:64px;opacity:.28}.peopleGrid,.deepGrid,.careGrid,.featureHub,.featureActions,.cultureList,.completeGrid,.tripForm,.infoGrid,.factGrid,.gallery{grid-template-columns:1fr!important}.personCard{grid-template-columns:100px 1fr}.vpetPlusFab{right:12px;bottom:12px}\n}\n'''
             s=s.replace('</style>',css+'</style>',1)
-          # Add route-aware metadata and deep-link support before closing body
-          if 'VPET_ROUTE_SEO_2026' not in s:
-            js=r'''\n<script id="VPET_ROUTE_SEO_2026">\n(function(){\n const routes={\n  '/alimentazione-allergie':{title:'Alimentazione e allergie per cani e gatti | VPET',description:'Guide VPET su alimentazione, allergie e intolleranze di cani e gatti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/lettiera':{title:'Lettiera del gatto: guida e consigli | VPET',description:'Guida VPET alla lettiera del gatto: scelta, gestione, igiene e comportamenti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/razze':{title:'Razze di cani e gatti: caratteristiche e curiosità | VPET',description:'Scopri razze di cani e gatti, caratteristiche, storia e curiosità su VPET.',open:()=>window.openM&&openM('breeds')},\n  '/adozioni':{title:'Adozione di cani e gatti: guida utile | VPET',description:'Informazioni e guide VPET per un’adozione consapevole di cani e gatti.',open:()=>window.openM&&openM('adoption')},\n  '/chiedi-a-vpet':{title:'Chiedi a VPET: risposte utili sul mondo pet',description:'Cerca risposte e informazioni utili su cani, gatti, viaggi, benessere e vita quotidiana.',open:()=>window.openFaqHub&&openFaqHub()},\n  '/viaggi':{title:'Viaggiare con cani e gatti: guide e checklist | VPET',description:'Guide, documenti, checklist e consigli VPET per viaggiare con il tuo animale.',open:()=>window.openM&&openM('travel')}\n };\n function setMeta(r){\n   if(!r)return; document.title=r.title;\n   let m=document.querySelector('meta[name="description"]'); if(m)m.content=r.description;\n   let c=document.querySelector('link[rel="canonical"]'); if(c)c.href=location.origin+location.pathname;\n   const ot=document.querySelector('meta[property="og:title"]'),od=document.querySelector('meta[property="og:description"]'),ou=document.querySelector('meta[property="og:url"]');\n   if(ot)ot.content=r.title;if(od)od.content=r.description;if(ou)ou.content=location.href;\n }\n function boot(){const path=location.pathname.replace(/\/$/,'')||'/';const r=routes[path];if(r){setMeta(r);setTimeout(r.open,120)}}\n document.addEventListener('DOMContentLoaded',boot);\n window.addEventListener('popstate',boot);\n window.vpetNavigate=function(path,opener){history.pushState({},'',path);const r=routes[path];if(r)setMeta(r);if(opener)opener();};\n})();\n</script>\n'''
-            s=s.replace('</body>',js+'</body>',1)
+
+          # 5) Replace the route block completely so it contains real newlines and correct openers.
+          route_js='''
+<script id="VPET_ROUTE_SEO_2026">
+(function(){
+ const routes={
+  '/alimentazione-allergie':{title:'Alimentazione e allergie per cani e gatti | VPET',description:'Guide VPET su alimentazione, allergie e intolleranze di cani e gatti.',open:()=>window.vpetCareDetail&&vpetCareDetail(0)},
+  '/lettiera':{title:'Lettiera del gatto: guida e consigli | VPET',description:'Guida VPET alla lettiera del gatto: scelta, gestione, igiene e comportamenti.',open:()=>window.vpetCareDetail&&vpetCareDetail(2)},
+  '/razze':{title:'Razze di cani e gatti: caratteristiche e curiosità | VPET',description:'Scopri razze di cani e gatti, caratteristiche, storia e curiosità su VPET.',open:()=>window.openM&&openM('breeds')},
+  '/adozioni':{title:'Adozione di cani e gatti: guida utile | VPET',description:'Informazioni e guide VPET per un’adozione consapevole di cani e gatti.',open:()=>window.openM&&openM('adopt')},
+  '/chiedi-a-vpet':{title:'Chiedi a VPET: risposte utili sul mondo pet',description:'Cerca risposte e informazioni utili su cani, gatti, viaggi, benessere e vita quotidiana.',open:()=>window.openFaqHub&&openFaqHub()},
+  '/viaggi':{title:'Viaggiare con cani e gatti: guide e checklist | VPET',description:'Guide, documenti, checklist e consigli VPET per viaggiare con il tuo animale.',open:()=>window.openM&&openM('travel')}
+ };
+ function setMeta(r){
+   if(!r)return;
+   document.title=r.title;
+   const m=document.querySelector('meta[name="description"]'); if(m)m.content=r.description;
+   const c=document.querySelector('link[rel="canonical"]'); if(c)c.href='https://vpet.it'+location.pathname;
+   const ot=document.querySelector('meta[property="og:title"]'),od=document.querySelector('meta[property="og:description"]'),ou=document.querySelector('meta[property="og:url"]');
+   if(ot)ot.content=r.title; if(od)od.content=r.description; if(ou)ou.content='https://vpet.it'+location.pathname;
+ }
+ function boot(){const path=location.pathname.replace(/\/$/,'')||'/';const r=routes[path];if(r){setMeta(r);setTimeout(r.open,120)}}
+ document.addEventListener('DOMContentLoaded',boot);
+ window.addEventListener('popstate',boot);
+ window.vpetNavigate=function(path,opener){history.pushState({},'',path);const r=routes[path];if(r)setMeta(r);if(opener)opener();};
+})();
+</script>
+'''
+          # Remove either the previous normal block or the accidentally escaped block.
+          start=s.find('<script id="VPET_ROUTE_SEO_2026">')
+          escaped_start=s.find('\\n<script id="VPET_ROUTE_SEO_2026">')
+          if escaped_start != -1 and (start == -1 or escaped_start < start):
+            start=escaped_start
+          if start != -1:
+            end=s.find('</script>', start)
+            if end != -1:
+              end += len('</script>')
+              # Consume escaped or real trailing newline markers left by old patch.
+              tail=end
+              while s[tail:tail+2] == '\\n': tail += 2
+              while s[tail:tail+1] == '\n': tail += 1
+              s=s[:start]+route_js+s[tail:]
+          else:
+            s=s.replace('</body>',route_js+'</body>',1)
+
+          # 6) Defensive fix for legacy typo if it appears elsewhere.
+          s=s.replace("openM('adoption')", "openM('adopt')")
+
           p.write_text(s)
           PY
       - name: Commit patch
@@ -39,5 +91,5 @@ jobs:
           git config user.name "VPET automation"
           git config user.email "actions@users.noreply.github.com"
           git add "VPET_CON_GUIDA_E_VIDEO (1)/index.html"
-          git commit -m "[vpet-patched] Fix mobile layout and add SEO routing metadata"
+          git commit -m "[vpet-patched] Fix JavaScript subcategories and deep links"
           git push origin vpet-mobile-seo-fix
