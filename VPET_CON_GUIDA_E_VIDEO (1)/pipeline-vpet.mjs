@@ -11,6 +11,7 @@ const steps=[
   'seo-accessibility-vpet.mjs',
   'participa-vpet.mjs',
   'emergenze-vpet.mjs',
+  'final-polish-vpet.mjs',
   'deep-audit-vpet.mjs'
 ];
 
