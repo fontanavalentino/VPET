@@ -15,6 +15,7 @@ const steps=[
   'critical-fix-vpet.mjs',
   'history-editorial-vpet.mjs',
   'breed-quality-vpet.mjs',
+  'breed-photo-wikimedia-vpet.mjs',
   'deep-audit-vpet.mjs',
   'path-audit-vpet.mjs'
 ];
