@@ -10,6 +10,7 @@ const steps=[
   'meticulous-fix.mjs',
   'seo-accessibility-vpet.mjs',
   'participa-vpet.mjs',
+  'emergenze-vpet.mjs',
   'deep-audit-vpet.mjs'
 ];
 
