@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "buildCommand": "node build-vpet.mjs && node polish-vpet.mjs && node breed-hotfix.mjs && node experience-vpet.mjs",
+  "buildCommand": "node build-vpet.mjs && node polish-vpet.mjs && node breed-hotfix.mjs && node experience-vpet.mjs && node quality-vpet.mjs",
   "outputDirectory": "dist",
   "headers": [
     {
@@ -21,6 +21,12 @@
       "source": "/manifest.webmanifest",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     }
   ]
