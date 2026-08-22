@@ -9,7 +9,8 @@ const steps=[
   'meticulous-vpet.mjs',
   'meticulous-fix.mjs',
   'seo-accessibility-vpet.mjs',
-  'participa-vpet.mjs'
+  'participa-vpet.mjs',
+  'deep-audit-vpet.mjs'
 ];
 
 for(const step of steps){
