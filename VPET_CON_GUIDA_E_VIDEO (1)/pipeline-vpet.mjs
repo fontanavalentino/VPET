@@ -14,6 +14,7 @@ const steps=[
   'final-polish-vpet.mjs',
   'critical-fix-vpet.mjs',
   'history-editorial-vpet.mjs',
+  'breed-quality-vpet.mjs',
   'deep-audit-vpet.mjs'
 ];
 
