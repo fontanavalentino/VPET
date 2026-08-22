@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "buildCommand": "node build-vpet.mjs && node polish-vpet.mjs",
+  "buildCommand": "node build-vpet.mjs && node polish-vpet.mjs && node breed-hotfix.mjs",
   "outputDirectory": "dist",
   "headers": [
     {
