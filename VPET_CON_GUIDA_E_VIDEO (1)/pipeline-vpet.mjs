@@ -15,7 +15,8 @@ const steps=[
   'critical-fix-vpet.mjs',
   'history-editorial-vpet.mjs',
   'breed-quality-vpet.mjs',
-  'deep-audit-vpet.mjs'
+  'deep-audit-vpet.mjs',
+  'path-audit-vpet.mjs'
 ];
 
 for(const step of steps){
