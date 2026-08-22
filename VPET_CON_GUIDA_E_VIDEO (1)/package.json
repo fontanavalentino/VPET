@@ -1,0 +1,8 @@
+{
+  "name": "vpet-site",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build-vpet.mjs"
+  }
+}
