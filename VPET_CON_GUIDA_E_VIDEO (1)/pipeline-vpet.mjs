@@ -13,6 +13,7 @@ const steps=[
   'emergenze-vpet.mjs',
   'final-polish-vpet.mjs',
   'critical-fix-vpet.mjs',
+  'history-editorial-vpet.mjs',
   'deep-audit-vpet.mjs'
 ];
 
