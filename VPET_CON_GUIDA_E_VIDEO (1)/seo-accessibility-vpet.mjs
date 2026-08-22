@@ -1,0 +1,12 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+const p=path.join(process.cwd(),'dist','index.html');
+let s=await readFile(p,'utf8');
+const jsonLd=`<script type="application/ld+json" id="VPET_SCHEMA_2026">{"@context":"https://schema.org","@type":"WebSite","name":"VPET","url":"https://vpet.it/","description":"Guide, strumenti e contenuti su cani e gatti: razze, viaggi, adozioni, alimentazione, benessere e cultura pet.","inLanguage":"it-IT","potentialAction":{"@type":"SearchAction","target":"https://vpet.it/#cerca={search_term_string}","query-input":"required name=search_term_string"}}</script>`;
+if(!s.includes('VPET_SCHEMA_2026'))s=s.replace('</head>',jsonLd+'</head>');
+const css=`<style id="VPET_A11Y_FINE_2026">.sheet:focus{outline:none}.vpetSectionNav button:focus-visible,.vpetBottomBack:focus-visible,.breedCard:focus-visible,.vpetSpeciesCard:focus-visible{outline:3px solid #fff;outline-offset:3px}@media(max-width:700px){.sheet{scroll-padding-top:70px}.vpetSectionNav{padding-top:max(12px,env(safe-area-inset-top))}}</style>`;
+if(!s.includes('VPET_A11Y_FINE_2026'))s=s.replace('</head>',css+'</head>');
+const js=`<script id="VPET_NAV_STATE_2026">(()=>{let opener=null;const modal=document.getElementById('modal'),sheet=document.getElementById('sheet');document.addEventListener('click',e=>{const b=e.target.closest('button,a');if(b&&!modal?.contains(b))opener=b},true);if(modal)new MutationObserver(()=>{if(modal.classList.contains('show')){sheet?.setAttribute('tabindex','-1');setTimeout(()=>sheet?.focus({preventScroll:true}),0)}else if(opener&&document.contains(opener)){setTimeout(()=>opener.focus({preventScroll:true}),0)}}).observe(modal,{attributes:true,attributeFilter:['class']});const oldHub=window.vpetMeticulousBreedHub;if(typeof oldHub==='function')window.vpetMeticulousBreedHub=function(){history.replaceState(null,'','#razze');return oldHub.apply(this,arguments)};const oldList=window.vpetMeticulousCatList;if(typeof oldList==='function')window.vpetMeticulousCatList=function(){history.replaceState(null,'','#razze-gatti');return oldList.apply(this,arguments)};})();</script>`;
+if(!s.includes('VPET_NAV_STATE_2026'))s=s.replace('</body>',js+'</body>');
+await writeFile(p,s,'utf8');
+console.log('VPET structured data and accessibility layer applied');
