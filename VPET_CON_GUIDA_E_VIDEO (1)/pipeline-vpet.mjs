@@ -16,6 +16,7 @@ const steps=[
   'history-editorial-vpet.mjs',
   'breed-quality-vpet.mjs',
   'breed-photo-wikimedia-vpet.mjs',
+  'final-force-breeds-vpet.mjs',
   'deep-audit-vpet.mjs',
   'path-audit-vpet.mjs'
 ];
