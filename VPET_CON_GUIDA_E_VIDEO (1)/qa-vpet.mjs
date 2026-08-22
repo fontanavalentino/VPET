@@ -20,6 +20,8 @@ const checks=[
  ['Sticky back navigation',/vpetSectionNav/],
  ['Bottom back navigation',/vpetBottomBack/],
  ['Veterinary disclaimer',/non sostituisce il veterinario/i],
+ ['Participation section',/VPET_PARTECIPA_2026/],
+ ['Pet Carpet email',/petcarpetfestival@gmail\.com/],
  ['PWA manifest',/manifest\.webmanifest/],
  ['Service worker registration',/VPET_SW_REGISTER/]
 ];
