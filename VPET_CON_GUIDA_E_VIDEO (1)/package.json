@@ -3,6 +3,6 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "node build-vpet.mjs"
+    "build": "node build-vpet.mjs && node home-upgrade.mjs"
   }
 }
