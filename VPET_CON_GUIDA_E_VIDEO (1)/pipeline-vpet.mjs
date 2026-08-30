@@ -12,6 +12,7 @@ const steps=[
   'participa-vpet.mjs',
   'emergenze-vpet.mjs',
   'final-polish-vpet.mjs',
+  'home-upgrade.mjs',
   'deep-audit-vpet.mjs'
 ];
 
