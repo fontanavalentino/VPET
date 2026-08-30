@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "node build-vpet.mjs && node home-upgrade.mjs",
+    "build": "node build-vpet.mjs && node breed-complete-vpet.mjs && node home-upgrade.mjs",
     "qa:content": "node qa-content.mjs",
     "qa:e2e": "playwright test"
   },
