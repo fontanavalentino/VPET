@@ -104,7 +104,27 @@
 @media(max-width:700px){
 .dashboardExtension{padding:18px 14px 80px}.dashExtHead{align-items:flex-start;flex-direction:column}.dashboardCardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboardMiniGrid{grid-template-columns:1fr}.dailyCard{grid-template-columns:44px 1fr 20px}.mediaHero{padding:18px;min-height:220px}.mediaHero h3{font-size:25px}.mediaHero:before{right:14px;top:12px;font-size:64px;opacity:.28}.peopleGrid,.deepGrid,.careGrid,.featureHub,.featureActions,.cultureList,.completeGrid,.tripForm,.infoGrid,.factGrid,.gallery{grid-template-columns:1fr!important}.personCard{grid-template-columns:100px 1fr}.vpetPlusFab{right:12px;bottom:12px}
 }
+
+/* VPET: accesso rapido reale, indipendente dalle zone invisibili sull'immagine. */
+.vpetQuickNav{max-width:1599px;margin:0 auto;padding:14px 18px;background:#0b1720;color:#fff;border-bottom:1px solid #725222}
+.vpetQuickNav h1{font:700 clamp(18px,2.6vw,26px) Georgia,serif;color:#f1be5a;margin:0 0 10px}
+.vpetQuickNav p{color:#d6dde1;margin:0 0 12px;font-size:14px;line-height:1.5}
+.vpetQuickActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.vpetQuickActions button{min-height:58px;border:1px solid #a8782a;border-radius:13px;background:#142736;color:#fff;font-weight:800;font-size:16px;cursor:pointer;text-align:center;padding:12px}
+.vpetQuickActions button:first-child{background:#e9ae37;color:#211407}
+.vpetQuickActions button:hover{border-color:#ffdb8c;background:#244052}
+.vpetQuickActions button:focus-visible,.hot:focus-visible{outline:3px solid #f4c862;outline-offset:3px}
+@media(max-width:680px){.vpetQuickNav{padding:14px}.vpetQuickActions{grid-template-columns:repeat(2,minmax(0,1fr))}.vpetQuickActions button{font-size:15px;min-height:58px}}
+@media(prefers-reduced-motion:reduce){.vpetQuickActions button{transition:none!important}}
 </style></head><body>
+<nav class="vpetQuickNav" aria-label="Servizi principali VPET">
+<h1>Di cosa hai bisogno oggi?</h1><p>Trova subito il servizio che cerchi, anche dal telefono.</p>
+<div class="vpetQuickActions">
+<button type="button" onclick="openM('sos')" aria-label="Apri Pet SOS">🆘 Pet SOS</button>
+<button type="button" onclick="openM('adopt')" aria-label="Apri Adozioni">🐾 Adozioni</button>
+<button type="button" onclick="openM('near')" aria-label="Apri Vicino a me">📍 Vicino a me</button>
+<button type="button" onclick="openM('events')" aria-label="Apri Eventi">📅 Eventi</button>
+</div></nav>
 <div class="wrap" aria-label="VPET dashboard">
 <img class="dash" src="assets/dashboard.png" alt="Dashboard VPET">
 <!-- sidebar -->
@@ -125,13 +145,13 @@
 <button class="hot" style="left:71.5%;top:7.4%;width:27%;height:20%" onclick="openM('breeds')" aria-label="Guida alle Razze"></button>
 <button class="hot" style="left:71.5%;top:28.5%;width:27%;height:20%" onclick="openM('history')" aria-label="Animali nella Storia"></button>
 <!-- quick actions -->
-<button class="hot" style="left:16%;top:38.6%;width:7%;height:10%" onclick="openM('sos')"></button>
-<button class="hot" style="left:23%;top:38.6%;width:7%;height:10%" onclick="openM('near')"></button>
-<button class="hot" style="left:30%;top:38.6%;width:7%;height:10%" onclick="openM('places')"></button>
-<button class="hot" style="left:37%;top:38.6%;width:7%;height:10%" onclick="openM('events')"></button>
-<button class="hot" style="left:44%;top:38.6%;width:7%;height:10%" onclick="openM('travel')"></button>
-<button class="hot" style="left:51%;top:38.6%;width:7%;height:10%" onclick="openM('adopt')"></button>
-<button class="hot" style="left:58%;top:38.6%;width:7%;height:10%" onclick="openM('breeds')"></button>
+<button class="hot" style="left:16%;top:38.6%;width:7%;height:10%" onclick="openM('sos')" aria-label="Pet SOS"></button>
+<button class="hot" style="left:23%;top:38.6%;width:7%;height:10%" onclick="openM('near')" aria-label="Vicino a me"></button>
+<button class="hot" style="left:30%;top:38.6%;width:7%;height:10%" onclick="openM('places')" aria-label="Qui siamo stati bene"></button>
+<button class="hot" style="left:37%;top:38.6%;width:7%;height:10%" onclick="openM('events')" aria-label="Eventi"></button>
+<button class="hot" style="left:44%;top:38.6%;width:7%;height:10%" onclick="openM('travel')" aria-label="Viaggia insieme"></button>
+<button class="hot" style="left:51%;top:38.6%;width:7%;height:10%" onclick="openM('adopt')" aria-label="Adozioni"></button>
+<button class="hot" style="left:58%;top:38.6%;width:7%;height:10%" onclick="openM('breeds')" aria-label="Razze"></button>
 <!-- explore -->
 <button class="hot" style="left:15.7%;top:53.4%;width:19.5%;height:25%" onclick="openM('incredibili')"></button>
 <button class="hot" style="left:35.5%;top:53.4%;width:19.5%;height:25%" onclick="openM('places')"></button>
@@ -255,7 +275,7 @@
  </div>
 </section>
 
-<div class="modal" id="modal" onclick="if(event.target===this)closeM()"><div class="sheet" id="sheet"></div></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Contenuti VPET" aria-hidden="true" onclick="if(event.target===this)closeM()"><div class="sheet" id="sheet" tabindex="-1"></div></div>
 
 <script>
 const SOURCES={
@@ -447,7 +467,7 @@ function mapSearch(q){window.open('https://www.google.com/maps/search/?api=1&que
 
 
 
-window.addEventListener('DOMContentLoaded',()=>{Object.entries({"travel": [["Ministero della Salute – consigli di viaggio", "https://www.salute.gov.it/new/it/tema/animali-daffezione/consigli-utili-viaggiare-con-i-nostri-animali/"], ["Ministero della Salute – trasporto", "https://www.salute.gov.it/new/it/tema/animali-daffezione/trasporto-degli-animali-da-compagnia/"], ["Commissione europea – movimenti non commerciali", "https://food.ec.europa.eu/animals/movement-pets/eu-legislation/non-commercial-movement_en"]], "adopt": [["Ministero della Salute – convivenza e adozione responsabile", "https://www.salute.gov.it/new/it/tema/animali-daffezione/gestire-la-convivenza-con-un-animale/"], ["Ministero della Salute – Code di casa", "https://www.salute.gov.it/new/it/campagna-di-comunicazione/campagna-di-comunicazione-code-di-casa/"]], "history": [["Treccani – I greci e gli animali", "https://www.treccani.it/enciclopedia/i-greci-e-gli-animali_%28Storia-della-civilta-Europea%29/"], ["Treccani – Caccia, storia e impiego degli animali", "https://www.treccani.it/enciclopedia/caccia/"]], "health": [["Ministero della Salute – animali d’affezione", "https://www.salute.gov.it/new/it/tema/animali-daffezione/"], ["Ministero della Salute – uso prudente antibiotici cane e gatto", "https://www.salute.gov.it/new/it/news-e-media/notizie/linee-guida-uso-prudente-dellantibiotico-nel-cane-e-nel-gatto/"]]}).forEach(([k,v])=>{RELIABLE_SOURCES[k]=[...(RELIABLE_SOURCES[k]||[]),......v]});});
+window.addEventListener('DOMContentLoaded',()=>{Object.entries({"travel": [["Ministero della Salute – consigli di viaggio", "https://www.salute.gov.it/new/it/tema/animali-daffezione/consigli-utili-viaggiare-con-i-nostri-animali/"], ["Ministero della Salute – trasporto", "https://www.salute.gov.it/new/it/tema/animali-daffezione/trasporto-degli-animali-da-compagnia/"], ["Commissione europea – movimenti non commerciali", "https://food.ec.europa.eu/animals/movement-pets/eu-legislation/non-commercial-movement_en"]], "adopt": [["Ministero della Salute – convivenza e adozione responsabile", "https://www.salute.gov.it/new/it/tema/animali-daffezione/gestire-la-convivenza-con-un-animale/"], ["Ministero della Salute – Code di casa", "https://www.salute.gov.it/new/it/campagna-di-comunicazione/campagna-di-comunicazione-code-di-casa/"]], "history": [["Treccani – I greci e gli animali", "https://www.treccani.it/enciclopedia/i-greci-e-gli-animali_%28Storia-della-civilta-Europea%29/"], ["Treccani – Caccia, storia e impiego degli animali", "https://www.treccani.it/enciclopedia/caccia/"]], "health": [["Ministero della Salute – animali d’affezione", "https://www.salute.gov.it/new/it/tema/animali-daffezione/"], ["Ministero della Salute – uso prudente antibiotici cane e gatto", "https://www.salute.gov.it/new/it/news-e-media/notizie/linee-guida-uso-prudente-dellantibiotico-nel-cane-e-nel-gatto/"]]}).forEach(([k,v])=>{RELIABLE_SOURCES[k]=[...(RELIABLE_SOURCES[k]||[]),...v]});});
 
 function sourceMethod(){
  return `<section class="detailBlock"><h4>🛡️ Come VPET verifica i contenuti</h4>
@@ -811,4 +831,50 @@ function openMBox(){document.getElementById('modal').classList.add('show')}
 
 function closeM(){modal.classList.remove('show')}
 </script>
-\n<script id="VPET_ROUTE_SEO_2026">\n(function(){\n const routes={\n  '/alimentazione-allergie':{title:'Alimentazione e allergie per cani e gatti | VPET',description:'Guide VPET su alimentazione, allergie e intolleranze di cani e gatti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/lettiera':{title:'Lettiera del gatto: guida e consigli | VPET',description:'Guida VPET alla lettiera del gatto: scelta, gestione, igiene e comportamenti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/razze':{title:'Razze di cani e gatti: caratteristiche e curiosità | VPET',description:'Scopri razze di cani e gatti, caratteristiche, storia e curiosità su VPET.',open:()=>window.openM&&openM('breeds')},\n  '/adozioni':{title:'Adozione di cani e gatti: guida utile | VPET',description:'Informazioni e guide VPET per un’adozione consapevole di cani e gatti.',open:()=>window.openM&&openM('adoption')},\n  '/chiedi-a-vpet':{title:'Chiedi a VPET: risposte utili sul mondo pet',description:'Cerca risposte e informazioni utili su cani, gatti, viaggi, benessere e vita quotidiana.',open:()=>window.openFaqHub&&openFaqHub()},\n  '/viaggi':{title:'Viaggiare con cani e gatti: guide e checklist | VPET',description:'Guide, documenti, checklist e consigli VPET per viaggiare con il tuo animale.',open:()=>window.openM&&openM('travel')}\n };\n function setMeta(r){\n   if(!r)return; document.title=r.title;\n   let m=document.querySelector('meta[name="description"]'); if(m)m.content=r.description;\n   let c=document.querySelector('link[rel="canonical"]'); if(c)c.href=location.origin+location.pathname;\n   const ot=document.querySelector('meta[property="og:title"]'),od=document.querySelector('meta[property="og:description"]'),ou=document.querySelector('meta[property="og:url"]');\n   if(ot)ot.content=r.title;if(od)od.content=r.description;if(ou)ou.content=location.href;\n }\n function boot(){const path=location.pathname.replace(/\/$/,'')||'/';const r=routes[path];if(r){setMeta(r);setTimeout(r.open,120)}}\n document.addEventListener('DOMContentLoaded',boot);\n window.addEventListener('popstate',boot);\n window.vpetNavigate=function(path,opener){history.pushState({},'',path);const r=routes[path];if(r)setMeta(r);if(opener)opener();};\n})();\n</script>\n</body></html>
+\n\n
+<script id="vpet-modal-accessibility">
+(() => {
+  const modalElement = document.getElementById('modal');
+  const sheetElement = document.getElementById('sheet');
+  if (!modalElement || !sheetElement) return;
+  let previousFocus = null;
+  document.addEventListener('click', (event) => {
+    if (!modalElement.classList.contains('show')) {
+      const trigger = event.target.closest('button, a');
+      if (trigger && !modalElement.contains(trigger)) previousFocus = trigger;
+    }
+  }, true);
+  const syncModal = () => {
+    const visible = modalElement.classList.contains('show');
+    modalElement.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    if (visible) {
+      sheetElement.focus({ preventScroll: true });
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      if (previousFocus && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
+    }
+  };
+  const observer = new MutationObserver(syncModal);
+  observer.observe(modalElement, { attributes: true, attributeFilter: ['class'] });
+  document.addEventListener('keydown', (event) => {
+    if (!modalElement.classList.contains('show')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (typeof closeM === 'function') closeM();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const selectors = 'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const active = [...sheetElement.querySelectorAll(selectors)].filter(el => el.getClientRects().length);
+    if (!active.length) { event.preventDefault(); sheetElement.focus(); return; }
+    const first = active[0], last = active[active.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === sheetElement)) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === sheetElement)) {
+      event.preventDefault(); first.focus();
+    }
+  });
+})();
+</script>
+</body></html>
