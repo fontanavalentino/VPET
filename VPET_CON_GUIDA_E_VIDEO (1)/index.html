@@ -104,7 +104,27 @@
 @media(max-width:700px){
 .dashboardExtension{padding:18px 14px 80px}.dashExtHead{align-items:flex-start;flex-direction:column}.dashboardCardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboardMiniGrid{grid-template-columns:1fr}.dailyCard{grid-template-columns:44px 1fr 20px}.mediaHero{padding:18px;min-height:220px}.mediaHero h3{font-size:25px}.mediaHero:before{right:14px;top:12px;font-size:64px;opacity:.28}.peopleGrid,.deepGrid,.careGrid,.featureHub,.featureActions,.cultureList,.completeGrid,.tripForm,.infoGrid,.factGrid,.gallery{grid-template-columns:1fr!important}.personCard{grid-template-columns:100px 1fr}.vpetPlusFab{right:12px;bottom:12px}
 }
+
+/* VPET: accesso rapido reale, indipendente dalle zone invisibili sull'immagine. */
+.vpetQuickNav{max-width:1599px;margin:0 auto;padding:14px 18px;background:#0b1720;color:#fff;border-bottom:1px solid #725222}
+.vpetQuickNav h1{font:700 clamp(18px,2.6vw,26px) Georgia,serif;color:#f1be5a;margin:0 0 10px}
+.vpetQuickNav p{color:#d6dde1;margin:0 0 12px;font-size:14px;line-height:1.5}
+.vpetQuickActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.vpetQuickActions button{min-height:58px;border:1px solid #a8782a;border-radius:13px;background:#142736;color:#fff;font-weight:800;font-size:16px;cursor:pointer;text-align:center;padding:12px}
+.vpetQuickActions button:first-child{background:#e9ae37;color:#211407}
+.vpetQuickActions button:hover{border-color:#ffdb8c;background:#244052}
+.vpetQuickActions button:focus-visible,.hot:focus-visible{outline:3px solid #f4c862;outline-offset:3px}
+@media(max-width:680px){.vpetQuickNav{padding:14px}.vpetQuickActions{grid-template-columns:repeat(2,minmax(0,1fr))}.vpetQuickActions button{font-size:15px;min-height:58px}}
+@media(prefers-reduced-motion:reduce){.vpetQuickActions button{transition:none!important}}
 </style></head><body>
+<nav class="vpetQuickNav" aria-label="Servizi principali VPET">
+<h1>Di cosa hai bisogno oggi?</h1><p>Trova subito il servizio che cerchi, anche dal telefono.</p>
+<div class="vpetQuickActions">
+<button type="button" onclick="openM('sos')" aria-label="Apri Pet SOS">🆘 Pet SOS</button>
+<button type="button" onclick="openM('adopt')" aria-label="Apri Adozioni">🐾 Adozioni</button>
+<button type="button" onclick="openM('near')" aria-label="Apri Vicino a me">📍 Vicino a me</button>
+<button type="button" onclick="openM('events')" aria-label="Apri Eventi">📅 Eventi</button>
+</div></nav>
 <div class="wrap" aria-label="VPET dashboard">
 <img class="dash" src="assets/dashboard.png" alt="Dashboard VPET">
 <!-- sidebar -->
@@ -125,13 +145,13 @@
 <button class="hot" style="left:71.5%;top:7.4%;width:27%;height:20%" onclick="openM('breeds')" aria-label="Guida alle Razze"></button>
 <button class="hot" style="left:71.5%;top:28.5%;width:27%;height:20%" onclick="openM('history')" aria-label="Animali nella Storia"></button>
 <!-- quick actions -->
-<button class="hot" style="left:16%;top:38.6%;width:7%;height:10%" onclick="openM('sos')"></button>
-<button class="hot" style="left:23%;top:38.6%;width:7%;height:10%" onclick="openM('near')"></button>
-<button class="hot" style="left:30%;top:38.6%;width:7%;height:10%" onclick="openM('places')"></button>
-<button class="hot" style="left:37%;top:38.6%;width:7%;height:10%" onclick="openM('events')"></button>
-<button class="hot" style="left:44%;top:38.6%;width:7%;height:10%" onclick="openM('travel')"></button>
-<button class="hot" style="left:51%;top:38.6%;width:7%;height:10%" onclick="openM('adopt')"></button>
-<button class="hot" style="left:58%;top:38.6%;width:7%;height:10%" onclick="openM('breeds')"></button>
+<button class="hot" style="left:16%;top:38.6%;width:7%;height:10%" onclick="openM('sos')" aria-label="Pet SOS"></button>
+<button class="hot" style="left:23%;top:38.6%;width:7%;height:10%" onclick="openM('near')" aria-label="Vicino a me"></button>
+<button class="hot" style="left:30%;top:38.6%;width:7%;height:10%" onclick="openM('places')" aria-label="Qui siamo stati bene"></button>
+<button class="hot" style="left:37%;top:38.6%;width:7%;height:10%" onclick="openM('events')" aria-label="Eventi"></button>
+<button class="hot" style="left:44%;top:38.6%;width:7%;height:10%" onclick="openM('travel')" aria-label="Viaggia insieme"></button>
+<button class="hot" style="left:51%;top:38.6%;width:7%;height:10%" onclick="openM('adopt')" aria-label="Adozioni"></button>
+<button class="hot" style="left:58%;top:38.6%;width:7%;height:10%" onclick="openM('breeds')" aria-label="Razze"></button>
 <!-- explore -->
 <button class="hot" style="left:15.7%;top:53.4%;width:19.5%;height:25%" onclick="openM('incredibili')"></button>
 <button class="hot" style="left:35.5%;top:53.4%;width:19.5%;height:25%" onclick="openM('places')"></button>
