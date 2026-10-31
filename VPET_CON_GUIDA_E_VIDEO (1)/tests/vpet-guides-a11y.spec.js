@@ -39,6 +39,7 @@ test('navigazione guida non mostra contenuto orizzontalmente tagliato', async ({
 test('Home: quattro azioni principali leggibili e raggiungibili', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Vai alla dashboard' }).click();
   const nav = page.getByRole('navigation', { name: 'Servizi principali VPET' });
   await expect(nav).toBeVisible();
   const labels = ['Apri Pet SOS', 'Apri Adozioni', 'Apri Vicino a me', 'Apri Eventi'];
@@ -54,6 +55,7 @@ test('Home: quattro azioni principali leggibili e raggiungibili', async ({ page 
 
 test('Pet SOS: Escape chiude la finestra e riporta il focus sul pulsante', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Vai alla dashboard' }).click();
   const button = page.getByRole('navigation', { name: 'Servizi principali VPET' }).getByRole('button', { name: 'Apri Pet SOS' });
   await button.click();
   const dialog = page.getByRole('dialog', { name: 'Contenuti VPET' });
@@ -66,6 +68,7 @@ test('Pet SOS: Escape chiude la finestra e riporta il focus sul pulsante', async
 
 test('Adozioni: finestra apribile e chiudibile con tastiera', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Vai alla dashboard' }).click();
   const button = page.getByRole('navigation', { name: 'Servizi principali VPET' }).getByRole('button', { name: 'Apri Adozioni' });
   await button.click();
   await expect(page.getByRole('dialog', { name: 'Contenuti VPET' })).toBeVisible();
