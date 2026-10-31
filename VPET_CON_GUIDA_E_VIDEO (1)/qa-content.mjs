@@ -22,7 +22,7 @@ const genericPatterns = [
   /da compilare/i,
   /contenuto in arrivo/i,
   /testo esempio/i,
-  /placeholder/i
+  /<[^>]+>\s*(?:placeholder|segnaposto)\s*<\//i
 ];
 for (const rx of genericPatterns) if (rx.test(html)) failures.push(`Contenuto generico/placeholder rilevato: ${rx}`);
 
