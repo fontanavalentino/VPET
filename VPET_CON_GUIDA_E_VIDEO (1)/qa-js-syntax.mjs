@@ -13,7 +13,7 @@ for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
   try { new vm.Script(script, {filename: 'VPET-inline-script-' + checked + '.js'}); }
   catch (err) {
     errors++;
-    console.error('FAIL: script ' + checked + ': ' + err.message);
+    console.error('FAIL: script ' + checked + ': ' + (err.stack || err.message));
   }
 }
 console.log('VPET inline JavaScript checked: ' + checked + ', errors: ' + errors);
