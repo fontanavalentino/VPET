@@ -51,3 +51,24 @@ test('Home: quattro azioni principali leggibili e raggiungibili', async ({ page 
   await nav.getByRole('button', { name: 'Apri Pet SOS' }).click();
   await expect(page.locator('.modal.show')).toBeVisible();
 });
+
+test('Pet SOS: Escape chiude la finestra e riporta il focus sul pulsante', async ({ page }) => {
+  await page.goto('/');
+  const button = page.getByRole('navigation', { name: 'Servizi principali VPET' }).getByRole('button', { name: 'Apri Pet SOS' });
+  await button.click();
+  const dialog = page.getByRole('dialog', { name: 'Contenuti VPET' });
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#sheet')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(button).toBeFocused();
+});
+
+test('Adozioni: finestra apribile e chiudibile con tastiera', async ({ page }) => {
+  await page.goto('/');
+  const button = page.getByRole('navigation', { name: 'Servizi principali VPET' }).getByRole('button', { name: 'Apri Adozioni' });
+  await button.click();
+  await expect(page.getByRole('dialog', { name: 'Contenuti VPET' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Contenuti VPET' })).toBeHidden();
+});
