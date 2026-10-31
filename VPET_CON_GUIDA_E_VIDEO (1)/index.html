@@ -275,7 +275,7 @@
  </div>
 </section>
 
-<div class="modal" id="modal" onclick="if(event.target===this)closeM()"><div class="sheet" id="sheet"></div></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Contenuti VPET" aria-hidden="true" onclick="if(event.target===this)closeM()"><div class="sheet" id="sheet" tabindex="-1"></div></div>
 
 <script>
 const SOURCES={
@@ -831,4 +831,50 @@ function openMBox(){document.getElementById('modal').classList.add('show')}
 
 function closeM(){modal.classList.remove('show')}
 </script>
-\n<script id="VPET_ROUTE_SEO_2026">\n(function(){\n const routes={\n  '/alimentazione-allergie':{title:'Alimentazione e allergie per cani e gatti | VPET',description:'Guide VPET su alimentazione, allergie e intolleranze di cani e gatti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/lettiera':{title:'Lettiera del gatto: guida e consigli | VPET',description:'Guida VPET alla lettiera del gatto: scelta, gestione, igiene e comportamenti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/razze':{title:'Razze di cani e gatti: caratteristiche e curiosità | VPET',description:'Scopri razze di cani e gatti, caratteristiche, storia e curiosità su VPET.',open:()=>window.openM&&openM('breeds')},\n  '/adozioni':{title:'Adozione di cani e gatti: guida utile | VPET',description:'Informazioni e guide VPET per un’adozione consapevole di cani e gatti.',open:()=>window.openM&&openM('adoption')},\n  '/chiedi-a-vpet':{title:'Chiedi a VPET: risposte utili sul mondo pet',description:'Cerca risposte e informazioni utili su cani, gatti, viaggi, benessere e vita quotidiana.',open:()=>window.openFaqHub&&openFaqHub()},\n  '/viaggi':{title:'Viaggiare con cani e gatti: guide e checklist | VPET',description:'Guide, documenti, checklist e consigli VPET per viaggiare con il tuo animale.',open:()=>window.openM&&openM('travel')}\n };\n function setMeta(r){\n   if(!r)return; document.title=r.title;\n   let m=document.querySelector('meta[name="description"]'); if(m)m.content=r.description;\n   let c=document.querySelector('link[rel="canonical"]'); if(c)c.href=location.origin+location.pathname;\n   const ot=document.querySelector('meta[property="og:title"]'),od=document.querySelector('meta[property="og:description"]'),ou=document.querySelector('meta[property="og:url"]');\n   if(ot)ot.content=r.title;if(od)od.content=r.description;if(ou)ou.content=location.href;\n }\n function boot(){const path=location.pathname.replace(/\/$/,'')||'/';const r=routes[path];if(r){setMeta(r);setTimeout(r.open,120)}}\n document.addEventListener('DOMContentLoaded',boot);\n window.addEventListener('popstate',boot);\n window.vpetNavigate=function(path,opener){history.pushState({},'',path);const r=routes[path];if(r)setMeta(r);if(opener)opener();};\n})();\n</script>\n</body></html>
+\n<script id="VPET_ROUTE_SEO_2026">\n(function(){\n const routes={\n  '/alimentazione-allergie':{title:'Alimentazione e allergie per cani e gatti | VPET',description:'Guide VPET su alimentazione, allergie e intolleranze di cani e gatti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/lettiera':{title:'Lettiera del gatto: guida e consigli | VPET',description:'Guida VPET alla lettiera del gatto: scelta, gestione, igiene e comportamenti.',open:()=>window.vpetCareHub&&vpetCareHub()},\n  '/razze':{title:'Razze di cani e gatti: caratteristiche e curiosità | VPET',description:'Scopri razze di cani e gatti, caratteristiche, storia e curiosità su VPET.',open:()=>window.openM&&openM('breeds')},\n  '/adozioni':{title:'Adozione di cani e gatti: guida utile | VPET',description:'Informazioni e guide VPET per un’adozione consapevole di cani e gatti.',open:()=>window.openM&&openM('adoption')},\n  '/chiedi-a-vpet':{title:'Chiedi a VPET: risposte utili sul mondo pet',description:'Cerca risposte e informazioni utili su cani, gatti, viaggi, benessere e vita quotidiana.',open:()=>window.openFaqHub&&openFaqHub()},\n  '/viaggi':{title:'Viaggiare con cani e gatti: guide e checklist | VPET',description:'Guide, documenti, checklist e consigli VPET per viaggiare con il tuo animale.',open:()=>window.openM&&openM('travel')}\n };\n function setMeta(r){\n   if(!r)return; document.title=r.title;\n   let m=document.querySelector('meta[name="description"]'); if(m)m.content=r.description;\n   let c=document.querySelector('link[rel="canonical"]'); if(c)c.href=location.origin+location.pathname;\n   const ot=document.querySelector('meta[property="og:title"]'),od=document.querySelector('meta[property="og:description"]'),ou=document.querySelector('meta[property="og:url"]');\n   if(ot)ot.content=r.title;if(od)od.content=r.description;if(ou)ou.content=location.href;\n }\n function boot(){const path=location.pathname.replace(/\/$/,'')||'/';const r=routes[path];if(r){setMeta(r);setTimeout(r.open,120)}}\n document.addEventListener('DOMContentLoaded',boot);\n window.addEventListener('popstate',boot);\n window.vpetNavigate=function(path,opener){history.pushState({},'',path);const r=routes[path];if(r)setMeta(r);if(opener)opener();};\n})();\n</script>\n
+<script id="vpet-modal-accessibility">
+(() => {
+  const modalElement = document.getElementById('modal');
+  const sheetElement = document.getElementById('sheet');
+  if (!modalElement || !sheetElement) return;
+  let previousFocus = null;
+  document.addEventListener('click', (event) => {
+    if (!modalElement.classList.contains('show')) {
+      const trigger = event.target.closest('button, a');
+      if (trigger && !modalElement.contains(trigger)) previousFocus = trigger;
+    }
+  }, true);
+  const syncModal = () => {
+    const visible = modalElement.classList.contains('show');
+    modalElement.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    if (visible) {
+      sheetElement.focus({ preventScroll: true });
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      if (previousFocus && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
+    }
+  };
+  const observer = new MutationObserver(syncModal);
+  observer.observe(modalElement, { attributes: true, attributeFilter: ['class'] });
+  document.addEventListener('keydown', (event) => {
+    if (!modalElement.classList.contains('show')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (typeof closeM === 'function') closeM();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const selectors = 'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const active = [...sheetElement.querySelectorAll(selectors)].filter(el => el.getClientRects().length);
+    if (!active.length) { event.preventDefault(); sheetElement.focus(); return; }
+    const first = active[0], last = active[active.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === sheetElement)) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === sheetElement)) {
+      event.preventDefault(); first.focus();
+    }
+  });
+})();
+</script>
+</body></html>
