@@ -35,3 +35,19 @@ test('navigazione guida non mostra contenuto orizzontalmente tagliato', async ({
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
 });
+
+test('Home: quattro azioni principali leggibili e raggiungibili', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  const nav = page.getByRole('navigation', { name: 'Servizi principali VPET' });
+  await expect(nav).toBeVisible();
+  const labels = ['Apri Pet SOS', 'Apri Adozioni', 'Apri Vicino a me', 'Apri Eventi'];
+  for (const label of labels) {
+    const button = nav.getByRole('button', { name: label });
+    await expect(button).toBeVisible();
+    const rect = await button.boundingBox();
+    expect(rect.height).toBeGreaterThanOrEqual(44);
+  }
+  await nav.getByRole('button', { name: 'Apri Pet SOS' }).click();
+  await expect(page.locator('.modal.show')).toBeVisible();
+});
