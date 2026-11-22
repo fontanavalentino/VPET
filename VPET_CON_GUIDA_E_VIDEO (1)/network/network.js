@@ -20,6 +20,8 @@ let displayIndex = 0;
 let displayTimer;
 let displayPaused = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let openedPost;
+const opportunityTypes = {request:'Cerchiamo',offer:'Offriamo'};
+const dateFormat = new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'UTC'});
 const isOpportunity = post => ['Cerchiamo','Offriamo'].includes(post.type);
 
 let installPrompt;
@@ -60,6 +62,7 @@ async function loadNetwork() {
   for (const row of newNotes) if (byPost.has(row.post_id)) notes.set(byPost.get(row.post_id), row.message);
   renderFeed();
   renderProfiles();
+  renderRecent();
   initDisplay();
 }
 async function submit(form, action) {
@@ -148,16 +151,7 @@ function renderDisplay() {
   }
   const text = post.body.trim().replace(/\s+/g,' ');
   const summary = text.length > 170 ? text.slice(0,170).replace(/\s+\S*$/,'') + '…' : text;
-  const open = button('Leggi il messaggio', () => {
-    openedPost = post.id;
-    filter = post.type;
-    byId('territory').value = '';
-    updateFilters();
-    renderFeed();
-    const detail = byId('post-' + post.id);
-    detail?.focus();
-    detail?.scrollIntoView({block:'start'});
-  });
+  const open = button('Leggi il messaggio', () => openPost(post));
   open.classList.add('primary');
   target.replaceChildren(el('p', association.name + ' · ' + post.city, 'display-meta'),
     el('p',post.type,'tag'),el('h3',post.title),el('p',summary),open);
@@ -165,6 +159,35 @@ function renderDisplay() {
   const pause = byId('display-pause');
   pause.textContent = displayPaused ? 'Riprendi' : 'Pausa';
   pause.setAttribute('aria-pressed',String(displayPaused));
+}
+function openPost(post) {
+  openedPost = post.id;
+  filter = post.type;
+  byId('territory').value = '';
+  updateFilters();
+  renderFeed();
+  const detail = byId('post-' + post.id);
+  detail?.scrollIntoView({block:'start'});
+  detail?.focus({preventScroll:true});
+}
+function postDate(post) {
+  if (!post.date) return '';
+  const date = dateFormat.format(new Date(post.date));
+  return isOpportunity(post) ? 'Entro il ' + date : date;
+}
+function renderRecent() {
+  const recent = posts.filter(post => isOpportunity(post) && !post.sample).slice(0,4);
+  const status = byId('recent-status');
+  status.textContent = recent.length ? '' : 'Le prime richieste e offerte appariranno qui. Puoi pubblicare la tua dai pulsanti qui sopra.';
+  byId('recent-search').hidden = !recent.length;
+  byId('recent-opportunities').replaceChildren(...recent.map(post => {
+    const card = el('article', '', 'card');
+    const open = button('Leggi il post', () => openPost(post));
+    open.setAttribute('aria-label', 'Leggi il post: ' + post.title);
+    card.append(el('p',post.type,'tag'), el('h3',post.title),
+      el('p',[post.city,postDate(post)].filter(Boolean).join(' · '),'meta'),open);
+    return card;
+  }));
 }
 function updateFilters() {
   document.querySelectorAll('[data-filter]').forEach(control => control.setAttribute('aria-pressed', String(control.dataset.filter === filter)));
@@ -236,7 +259,7 @@ function renderFeed() {
     card.id = 'post-' + post.id;
     card.tabIndex = -1;
     card.append(el('div', post.type + (post.sample ? ' · Esempio' : ''), 'tag'), el('h3', post.title),
-      el('div', [post.author, post.city, post.date].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
+      el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
     if (openedPost) card.append(button('Torna ai risultati', () => {
       openedPost = undefined;
       renderFeed();
@@ -297,7 +320,7 @@ function cleanupMedia() {
   previewUrl = undefined;
   pendingFile = undefined;
 }
-function setupComposer(form) {
+function setupComposer(form, preferredType) {
   byId('publishing-as').textContent = 'Pubblicherai come ' + member;
   const file = byId('attachment');
   const record = byId('record');
@@ -325,15 +348,21 @@ function setupComposer(form) {
     }));
   }
   file.addEventListener('change', () => selectFile(file.files[0]));
-  form.elements.type.addEventListener('change', () => {
-    const isEvent = form.elements.type.value === 'Eventi';
+  function updateFields() {
+    const type = form.elements.type.value;
+    const isEvent = type === 'Eventi';
+    const opportunity = isOpportunity({type});
     form.elements.date.required = isEvent;
-    byId('event-date').hidden = !isEvent;
+    byId('event-date').hidden = !isEvent && !opportunity;
+    byId('post-date-label').textContent = isEvent ? 'Data dell’evento' : 'Entro quando (facoltativo)';
     const isExperience = form.elements.type.value === 'Esperienze';
     byId('experience-fields').hidden = !isExperience;
     form.elements.partner.required = isExperience;
     form.elements.outcome.required = isExperience;
-  });
+  }
+  if (preferredType) form.elements.type.value = preferredType;
+  updateFields();
+  form.elements.type.addEventListener('change', updateFields);
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
     record.hidden = true;
   }
@@ -376,7 +405,7 @@ function setupComposer(form) {
     event.preventDefault();
     submit(form, async () => {
       const {city,type,title,body,date,partner,outcome} = Object.fromEntries(new FormData(form));
-      const post = {city,type,title,body,owner:networkService.id(),date:type === 'Eventi' ? date : null,
+      const post = {city,type,title,body,owner:networkService.id(),date:(type === 'Eventi' || isOpportunity({type})) ? date || null : null,
         partner:type === 'Esperienze' ? partner : null,outcome:type === 'Esperienze' ? outcome : null};
       if (pendingFile) {
         post.media = await networkService.upload(pendingFile);
@@ -434,7 +463,7 @@ function openPanel(key, trigger, resume) {
       control.hidden = true;
     });
   }
-  if (key === 'publish') setupComposer(body.querySelector('form'));
+  if (key === 'publish') setupComposer(body.querySelector('form'), trigger?.dataset.opportunity);
   if (key === 'invite') setupInvite();
   if (key === 'google-profile') {
     const form = body.querySelector('form');
@@ -456,7 +485,10 @@ function openPanel(key, trigger, resume) {
       if (googleAvailable) body.querySelector('[data-google-entry]').hidden = false;
       google.addEventListener('click', async () => {
         google.disabled = true;
-        try { await networkService.googleStart(trigger?.dataset.profileKind ? 'professionista' : trigger?.dataset.open === 'profile' ? 'profile' : 'publish'); }
+        const opportunity = Object.keys(opportunityTypes).find(key => opportunityTypes[key] === trigger?.dataset.opportunity);
+        const destination = trigger?.dataset.profileKind ? 'professionista' :
+          trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish';
+        try { await networkService.googleStart(destination); }
         catch {
           form.querySelector('[data-form-status]').textContent = 'Non riesco ad aprire Google. Riprova o continua con email.';
           google.disabled = false;
@@ -564,13 +596,16 @@ byId('territory').addEventListener('input', () => {
   openedPost = undefined;
   renderFeed();
 });
-byId('display-search').addEventListener('click', () => {
+function searchOpportunities() {
   openedPost = undefined;
   filter = 'opportunità';
   updateFilters();
   renderFeed();
-  byId('territory').focus();
-});
+  byId('territory').scrollIntoView({block:'center'});
+  byId('territory').focus({preventScroll:true});
+}
+byId('display-search').addEventListener('click', searchOpportunities);
+byId('recent-search').addEventListener('click', searchOpportunities);
 byId('display-prev').addEventListener('click', () => moveDisplay(-1));
 byId('display-next').addEventListener('click', () => moveDisplay(1));
 byId('display-pause').addEventListener('click', event => {
@@ -591,7 +626,9 @@ dialog.addEventListener('close', () => {
   previousFocus?.focus();
 });
 const publishButton = document.querySelector('[data-publish]');
-publishButton.addEventListener('click', () => openPanel(member ? 'publish' : 'join', publishButton));
+document.querySelectorAll('[data-publish],[data-opportunity]').forEach(control => {
+  control.addEventListener('click', () => openPanel('publish', control));
+});
 renderFeed();
 renderProfiles();
 byId('sign-out').addEventListener('click', async () => {
@@ -610,11 +647,16 @@ byId('sign-out').addEventListener('click', async () => {
     if (!destination) await networkService.restore();
     await loadMember();
     await loadNetwork();
-  } catch { notice('Il network non è disponibile in questo momento. Riprova tra poco.'); }
+  } catch {
+    notice('Il network non è disponibile in questo momento. Riprova tra poco.');
+    byId('recent-status').textContent = 'Richieste e offerte al momento non disponibili.';
+  }
   await discovery;
   if (destination) {
     const isProfile = ['professionista','profile'].includes(destination);
-    const trigger = destination === 'professionista' ? document.querySelector('[data-profile-kind=Professionista]') :
+    const opportunity = opportunityTypes[destination];
+    const trigger = opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
+      destination === 'professionista' ? document.querySelector('[data-profile-kind=Professionista]') :
       isProfile ? document.querySelector('[data-open=profile]') : publishButton;
     const next = () => openPanel(isProfile ? 'profile' : 'publish', trigger);
     if (member) next();

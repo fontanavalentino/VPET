@@ -21,11 +21,16 @@
 <div class="hero-copy">
 <p class="eyebrow">IL NETWORK DI PET CARPET</p>
 <h1>Quando ci diamo una zampa, cambia tutto.</h1>
-<p>Il Network di Pet Carpet nasce per far incontrare le associazioni che aiutano gli animali. Qui puoi trovare chi cerca una mano, offrire qualcosa, condividere un evento o raccontare una collaborazione.</p>
-<p class="hero-example">Un rifugio cerca coperte. Un’associazione mette a disposizione un punto di raccolta. Insieme fanno arrivare l’aiuto dove serve.</p>
-<p class="hero-access">Puoi leggere liberamente. Iscriviti per pubblicare o commentare.</p>
+<p>Il Network di Pet Carpet mette in contatto chi si prende cura degli animali con chi può offrire materiali, tempo o competenze.</p>
+<div class="hero-choices"><button type="button" class="primary" data-opportunity="Cerchiamo">Ho bisogno di aiuto</button><button type="button" data-opportunity="Offriamo">Posso dare una mano</button></div>
 <div class="actions"><button class="primary" data-publish>Iscriviti e pubblica</button><button data-open="profile">Presenta la tua realtà</button><button data-open="invite">Invita una realtà</button></div>
 </div>
+</section>
+<section class="network-recent" aria-labelledby="recent-title">
+<h2 id="recent-title">Ultime richieste e offerte</h2>
+<p id="recent-status" role="status">Caricamento delle richieste e delle offerte…</p>
+<div id="recent-opportunities"></div>
+<button type="button" id="recent-search" hidden>Cerca per territorio</button>
 </section>
 <section class="network-display" id="network-display" aria-labelledby="display-title">
 <div class="display-header"><div><p class="eyebrow">DALLE ASSOCIAZIONI</p><h2 id="display-title">Chi cerca, chi offre</h2></div><button type="button" id="display-search">Cerca richieste e offerte</button></div>
@@ -145,7 +150,7 @@
 <label>Con chi hai collaborato <input name="partner" maxlength="100"></label>
 <label>Che cosa avete ottenuto insieme? <textarea name="outcome" maxlength="800"></textarea></label>
 </div>
-<label id="event-date" hidden>Data dell’evento <input name="date" type="date"></label>
+<label id="event-date" hidden><span id="post-date-label">Data dell’evento</span><input name="date" type="date"></label>
 <label>Foto, video o vocale <input id="attachment" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm"></label>
 <p class="hint">Un allegato per post, fino a 20 MB. Carica un vocale dal telefono oppure registralo qui.</p>
 <button type="button" id="record">Registra un vocale</button>
