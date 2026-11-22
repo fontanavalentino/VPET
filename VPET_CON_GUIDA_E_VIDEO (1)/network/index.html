@@ -23,7 +23,7 @@
 <h1>Quando ci diamo una zampa, cambia tutto.</h1>
 <p>Il Network di Pet Carpet mette in contatto chi si prende cura degli animali con chi può offrire materiali, tempo o competenze.</p>
 <div class="hero-choices"><button type="button" class="primary" data-opportunity="Cerchiamo">Ho bisogno di aiuto</button><button type="button" data-opportunity="Offriamo">Posso dare una mano</button></div>
-<div class="actions"><button class="primary" data-publish>Iscriviti e pubblica</button><button data-open="profile">Presenta la tua realtà</button><button data-open="invite">Invita una realtà</button></div>
+<div class="actions"><button class="primary" data-publish>Iscriviti e pubblica</button><button data-open="profile">Presenta la tua realtà</button><button data-open="invite">Invita una realtà</button><a class="contact" href="#partecipa-azienda" data-company-jump>Partecipa con la tua attività</a></div>
 </div>
 </section>
 <section class="network-recent" aria-labelledby="recent-title">
@@ -61,14 +61,16 @@
 <section aria-labelledby="feed-title">
 <h2 id="feed-title">La rete in movimento</h2>
 <p class="intro">Scopri chi fa, chi cerca e chi può dare una mano.</p>
-<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button><button aria-pressed="false" data-filter="Esperienze">Esperienze</button></div>
+<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button><button aria-pressed="false" data-filter="Esperienze">Esperienze</button><button aria-pressed="false" data-filter="risolti">Aiuti riusciti</button></div>
 <label class="territory">Cerca per territorio <input id="territory" placeholder="Es. Roma" type="search"></label>
 <p id="results" role="status"></p>
 <div id="feed"></div>
 </section>
 <aside>
 <div class="panel"><p class="eyebrow">FARE RETE</p><h2>Quello che puoi dare può essere proprio ciò che manca a qualcuno.</h2><button data-open="invite">Invita una realtà</button></div>
-<div class="panel company"><h2>Sei un’azienda e vuoi entrare?</h2><p>Metti i tuoi spazi, prodotti, servizi o il tempo del tuo team al servizio di un progetto concreto. Raccontaci che cosa puoi offrire e in quale territorio: Pet Carpet può aiutarti a trovare le realtà con cui collaborare.</p>
+<div class="panel company" id="partecipa-azienda"><h2 tabindex="-1">Partecipa con la tua attività</h2><p>Un negozio può ospitare un punto di raccolta. Un’azienda può offrire prodotti o un trasporto. Un professionista può mettere a disposizione le proprie competenze.</p>
+<div class="actions"><button type="button" data-open="profile" data-profile-kind="Azienda">Presenta la tua azienda</button><button type="button" class="primary" data-open="proposal" data-proposal-kind="Azienda">Proponi una collaborazione a Pet Carpet</button></div>
+<p>La proposta arriva in privato a Pet Carpet. La redazione ti ricontatta e, se c’è una realtà interessata, facilita il primo incontro. Le schede e i recapiti di aziende e professionisti restano nella rubrica riservata.</p>
 <a class="contact" href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet&amp;body=Buongiorno%20Pet%20Carpet%2C%0D%0A%0D%0AAzienda%3A%20%0D%0AReferente%20e%20recapito%3A%20%0D%0ATerritorio%3A%20%0D%0ACosa%20possiamo%20fare%20o%20mettere%20a%20disposizione%3A%20%0D%0A">Scrivi a Pet Carpet</a>
 <p class="hint"><a href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet">petcarpetfestival@gmail.com</a></p></div>
 <div class="panel company" id="professionisti">
@@ -83,7 +85,7 @@
 <p>Puoi proporre un incontro, qualche ora del tuo tempo o una collaborazione continuativa.</p>
 <div class="actions">
 <button type="button" data-open="profile" data-profile-kind="Professionista">Presentati come professionista</button>
-<a class="contact" href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet%20-%20Professionisti&amp;body=Buongiorno%20Pet%20Carpet%2C%0D%0A%0D%0ANome%20e%20professione%3A%20%0D%0ATerritorio%20o%20disponibilit%C3%A0%20online%3A%20%0D%0ACome%20posso%20aiutare%3A%20%0D%0ADisponibilit%C3%A0%20e%20recapito%3A%20%0D%0A">Proponi una collaborazione</a>
+<button type="button" class="primary" data-open="proposal" data-proposal-kind="Professionista">Proponi una collaborazione</button>
 </div></div>
 <div class="panel"><h2>Chi fa parte del network</h2><div id="directory"></div></div>
 </aside>
@@ -144,20 +146,41 @@
 <form>
 <p id="publishing-as" class="hint"></p>
 <div class="pair"><label>Tipo di post <select name="type"><option>Storie</option><option>Esperienze</option><option>Eventi</option><option>Cerchiamo</option><option>Offriamo</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
-<label>Titolo <input name="title" maxlength="100" required></label>
-<label>Raccontaci <textarea name="body" maxlength="2000" required></textarea></label>
+<label><span id="post-title-label">Titolo</span><input name="title" maxlength="100" required></label>
+<label><span id="post-body-label">Raccontaci</span><textarea name="body" maxlength="2000" required></textarea></label>
 <div id="experience-fields" hidden>
 <label>Con chi hai collaborato <input name="partner" maxlength="100"></label>
 <label>Che cosa avete ottenuto insieme? <textarea name="outcome" maxlength="800"></textarea></label>
 </div>
 <label id="event-date" hidden><span id="post-date-label">Data dell’evento</span><input name="date" type="date"></label>
+<details class="optional-media"><summary>Aggiungi foto, video o vocale (facoltativo)</summary>
 <label>Foto, video o vocale <input id="attachment" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm"></label>
 <p class="hint">Un allegato per post, fino a 20 MB. Carica un vocale dal telefono oppure registralo qui.</p>
 <button type="button" id="record">Registra un vocale</button>
 <div id="media-preview"></div>
+</details>
 <label class="check"><input type="checkbox" required> Ho il diritto di condividere il contenuto e ho le autorizzazioni necessarie per le persone riconoscibili.</label>
 <p class="hint">Il post e gli allegati saranno pubblici. Evita recapiti privati e informazioni sulle persone senza autorizzazione.</p>
 <button class="primary" type="submit">Pubblica post</button>
+</form>
+</template>
+<template id="proposal">
+<form>
+<p>Pet Carpet riceve la tua proposta in privato e ti ricontatta per valutare insieme a chi presentarla.</p>
+<label>Tipo di attività <select name="kind"><option>Azienda</option><option>Professionista</option></select></label>
+<label>Nome o ragione sociale <input name="name" maxlength="90" required></label>
+<label>Territorio <input name="city" maxlength="80" required></label>
+<label>Email per ricontattarti <input name="email" type="email" maxlength="150" required></label>
+<label>Come vuoi collaborare? <textarea name="message" maxlength="1500" required></textarea></label>
+<p class="hint">I recapiti e la proposta restano nella rubrica riservata. <a href="/network/privacy.html">Informativa privacy</a></p>
+<button class="primary" type="submit">Invia a Pet Carpet</button>
+</form>
+</template>
+<template id="resolve">
+<form>
+<p>La richiesta passerà tra gli «Aiuti riusciti». Puoi aggiungere un ringraziamento pubblico.</p>
+<label>Ringraziamento (facoltativo) <textarea name="thanks" maxlength="500"></textarea></label>
+<button class="primary" type="submit">Conferma aiuto ricevuto</button>
 </form>
 </template>
 <template id="profile">
@@ -169,7 +192,7 @@
 <label>WhatsApp <input name="whatsapp" type="tel" maxlength="22" placeholder="+39"></label>
 <label>Email <input name="email" type="email" maxlength="150"></label>
 <label class="check"><input type="checkbox" name="public"> Mostra i recapiti sulla pagina della realtà</label>
-<p class="hint">I recapiti sono accessibili alla redazione di Pet Carpet e appaiono nella scheda solo se scegli di mostrarli.</p>
+<p class="hint" data-profile-privacy>I recapiti sono accessibili alla redazione di Pet Carpet e appaiono nella scheda solo se scegli di mostrarli.</p>
 <button class="primary" type="submit">Salva la scheda</button>
 </form>
 </template>

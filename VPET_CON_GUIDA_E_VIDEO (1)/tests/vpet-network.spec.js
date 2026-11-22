@@ -76,7 +76,7 @@ for (const [age,width,zoom] of profiles) test('VPET Network · scenario ' + age,
    await page.getByRole('button',{name:'Pubblica post'}).click();
    const card=page.locator('article').filter({hasText:'Prova completa'});
    await card.waitFor();
-   await card.locator('summary').click();
+   await card.locator('.comments summary').click();
    await card.getByLabel('Scrivi un commento').fill('Ci sono anch’io!');
    await card.getByRole('button',{name:'Pubblica commento'}).click();
    await card.getByText('Ci sono anch’io!').waitFor();
@@ -144,7 +144,7 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   await network.getByRole('heading',{name:'Chi cerca, chi offre'}).waitFor();
   await network.getByRole('heading',{name:'Come puoi fare rete'}).waitFor();
   await network.getByRole('heading',{name:'Sei un professionista e vuoi entrare nella rete?'}).waitFor();
-  assert.match(await network.getByRole('link',{name:'Proponi una collaborazione'}).getAttribute('href'),/Professionisti/);
+  await network.getByRole('button',{name:'Proponi una collaborazione',exact:true}).waitFor();
   await network.getByText(/Organizzi una raccolta fondi, un mercatino solidale/).waitFor();
   await page.evaluate(z => document.documentElement.style.fontSize = (16*z)+'px',zoom);
   assert(await network.evaluate(host => host.scrollWidth <= host.clientWidth + 1));
@@ -206,4 +206,53 @@ test('Continua con Google conserva la scelta di offrire aiuto', async ({page}) =
   await page.getByLabel('Entro quando (facoltativo)').fill('2026-12-15');
   assert.equal(publicName,'Utente Google QA');
   assert(!new URL(page.url()).searchParams.has('code'));
+});
+
+test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiuderla', async ({page}) => {
+  const origin = 'https://enmhknczdgtivjiwszwk.supabase.co';
+  const headers = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'};
+  const requestId = 'c41cbc00-b948-41bb-8a95-78932aa26e53';
+  const author = '2';
+  let privateProposal;
+  const request = {id:requestId,owner:author,type:'Cerchiamo',city:'Roma',title:'Servono coperte',
+    body:'Due coperte pulite per il rifugio.',network_members:{name:'Rifugio QA'},network_resolutions:null};
+  await page.route(origin + '/auth/**',route => route.fulfill({
+    json:{access_token:'test',refresh_token:'test',user:{id:author}},headers
+  }));
+  await page.route(origin + '/rest/**',route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('network_proposals')) privateProposal = route.request().postDataJSON();
+    if (path.endsWith('network_resolutions')) {
+      const {post_id,thanks} = route.request().postDataJSON();
+      assert.equal(post_id,requestId);
+      request.network_resolutions = {thanks,resolved_at:'2026-11-22T14:00:00Z'};
+    }
+    return route.fulfill({json:path.endsWith('network_posts') ? [request] :
+      path.endsWith('network_members') ? [{name:'Rifugio QA'}] : [],headers});
+  });
+  await page.addInitScript(() => sessionStorage.setItem('vpet-network-session',JSON.stringify({refresh_token:'test'})));
+  await page.goto('/?post=' + requestId + '#network');
+  const article = page.locator('#feed article');
+  await article.getByRole('heading',{name:'Servono coperte'}).waitFor();
+  await article.getByText('Condividi il post',{exact:true}).click();
+  const shareUrl = await article.getByRole('link',{name:'WhatsApp'}).getAttribute('href');
+  assert(new URL(shareUrl).searchParams.get('text').includes('?post=' + requestId + '#network'));
+  await article.getByRole('button',{name:'Aiuto ricevuto'}).click();
+  await page.getByLabel('Ringraziamento (facoltativo)').fill('Grazie, le coperte sono arrivate.');
+  await page.getByRole('button',{name:'Conferma aiuto ricevuto'}).click();
+  await article.getByText('Grazie, le coperte sono arrivate.').waitFor();
+  assert.equal(await page.locator('#recent-opportunities article').count(),0);
+  assert.equal(await page.getByRole('button',{name:'Aiuti riusciti'}).getAttribute('aria-pressed'),'true');
+  await page.getByRole('link',{name:'Partecipa con la tua attività'}).click();
+  await page.getByRole('button',{name:'Proponi una collaborazione a Pet Carpet',exact:true}).click();
+  assert.equal(await page.getByLabel('Tipo di attività').inputValue(),'Azienda');
+  await page.getByLabel('Nome o ragione sociale').fill('Negozio QA');
+  await page.getByRole('dialog').getByLabel('Territorio').fill('Roma');
+  await page.getByLabel('Email per ricontattarti').fill('proposta@example.invalid');
+  await page.getByLabel('Come vuoi collaborare?').fill('Possiamo ospitare una raccolta.');
+  await page.getByRole('button',{name:'Invia a Pet Carpet'}).click();
+  await page.getByText('Proposta inviata a Pet Carpet.').waitFor();
+  assert.equal(privateProposal.owner,author);
+  assert.equal(privateProposal.kind,'Azienda');
+  assert.equal(await article.getByText('Possiamo ospitare una raccolta.').count(),0);
 });

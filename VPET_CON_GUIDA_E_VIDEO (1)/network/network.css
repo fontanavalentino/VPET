@@ -93,3 +93,15 @@ form input,form select,form textarea,.territory input{min-width:0}
 .google-entry{border-bottom:1px solid var(--line);padding:.5rem 0 .9rem;margin-top:.75rem}
 .google-entry button{width:100%;min-height:48px}
 .google-entry .hint{margin-top:.5rem}
+
+.hero-copy .actions .contact{background:transparent;color:#fff;border-color:#aec6b8;font-size:.9rem}
+.hero-copy .actions [data-company-jump]{grid-column:1/-1;justify-content:center}
+#partecipa-azienda h2{scroll-margin-top:5rem}
+#partecipa-azienda .actions{margin:.8rem 0}
+.optional-media,.share-details{border:1px solid var(--line);border-radius:12px;padding:.4rem .75rem}
+.optional-media summary,.share-details summary{min-height:44px;padding:.55rem 0;cursor:pointer;color:var(--green);font-weight:700}
+.optional-media[open]>*+*{margin-bottom:.65rem}
+.share-details{margin-top:.8rem}
+.post-share{display:flex;flex-wrap:wrap;gap:.5rem;padding-bottom:.4rem}
+.post-resolution{background:#e4ebe2;border-left:4px solid var(--green);padding:.7rem .9rem;margin:.85rem 0}
+.post-resolution p{margin:.25rem 0 0}

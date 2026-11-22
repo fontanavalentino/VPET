@@ -20,6 +20,9 @@ let displayIndex = 0;
 let displayTimer;
 let displayPaused = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let openedPost;
+const sharedPostId = new URLSearchParams(location.search).get('post');
+const validSharedPost = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sharedPostId);
+const profileKinds = {azienda:'Azienda',professionista:'Professionista'};
 const opportunityTypes = {request:'Cerchiamo',offer:'Offriamo'};
 const dateFormat = new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'UTC'});
 const isOpportunity = post => ['Cerchiamo','Offriamo'].includes(post.type);
@@ -40,15 +43,20 @@ function notice(message) {
 }
 
 async function loadNetwork() {
-  const [newPosts, newProfiles, newComments, newNotes, contacts] = await Promise.all([
-    networkService.rest('posts', '?select=*,network_members(name)&order=created_at.desc&limit=150'),
+  const postFields = '?select=*,network_members(name),network_resolutions(thanks,resolved_at)';
+  const [newPosts, newProfiles, newComments, newNotes, contacts, sharedPosts] = await Promise.all([
+    networkService.rest('posts', postFields + '&order=created_at.desc&limit=150'),
     networkService.rest('profiles', '?order=name.asc&limit=500'),
     networkService.rest('comments', '?select=*,network_members(name)&order=created_at.asc&limit=2000'),
     networkService.rest('notes', '?select=*'),
-    networkService.rest('contacts', '?select=*&limit=500')
+    networkService.rest('contacts', '?select=*&limit=500'),
+    validSharedPost ? networkService.rest('posts',postFields + '&id=eq.' + sharedPostId) : []
   ]);
   const contactsByOwner = new Map(contacts.map(row => [row.owner, row]));
-  posts.splice(0, posts.length, ...newPosts.map(row => ({...row, author:row.network_members.name})));
+  const uniquePosts = new Map([...newPosts, ...sharedPosts].map(row => [row.id,row]));
+  posts.splice(0, posts.length, ...Array.from(uniquePosts.values(), row => ({
+    ...row, author:row.network_members.name, resolution:Array.isArray(row.network_resolutions) ? row.network_resolutions[0] : row.network_resolutions
+  })));
   profiles.splice(0, profiles.length, ...newProfiles.map(row => ({...row, ...contactsByOwner.get(row.owner)})));
   comments.clear();
   notes.clear();
@@ -118,7 +126,7 @@ function attachment(file, url) {
 }
 function initDisplay() {
   const associations = new Map(profiles.filter(profile => profile.kind === 'Associazione').map(profile => [profile.owner, profile]));
-  displayPosts = posts.filter(post => isOpportunity(post) && associations.has(post.owner)).map(post => ({
+  displayPosts = posts.filter(post => isOpportunity(post) && !post.resolution && associations.has(post.owner)).map(post => ({
     post, association:associations.get(post.owner)
   }));
   for (let i = displayPosts.length - 1; i > 0; i--) {
@@ -176,7 +184,7 @@ function postDate(post) {
   return isOpportunity(post) ? 'Entro il ' + date : date;
 }
 function renderRecent() {
-  const recent = posts.filter(post => isOpportunity(post) && !post.sample).slice(0,4);
+  const recent = posts.filter(post => isOpportunity(post) && !post.resolution && !post.sample).slice(0,4);
   const status = byId('recent-status');
   status.textContent = recent.length ? '' : 'Le prime richieste e offerte appariranno qui. Puoi pubblicare la tua dai pulsanti qui sopra.';
   byId('recent-search').hidden = !recent.length;
@@ -188,6 +196,39 @@ function renderRecent() {
       el('p',[post.city,postDate(post)].filter(Boolean).join(' · '),'meta'),open);
     return card;
   }));
+}
+function sharePost(post, card) {
+  const url = new URL('/#network',location.origin);
+  url.searchParams.set('post',post.id);
+  const whatsapp = el('a','WhatsApp','contact');
+  whatsapp.href = 'https://wa.me/?text=' + encodeURIComponent(post.title + '\n' + url.href);
+  const facebook = el('a','Facebook','contact');
+  facebook.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url.href);
+  for (const link of [whatsapp,facebook]) {
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+  }
+  const status = el('p','','hint');
+  status.setAttribute('role','status');
+  const copy = button('Copia link',async () => {
+    try {
+      await navigator.clipboard.writeText(url.href);
+      status.textContent = 'Link copiato.';
+    } catch {
+      const field = el('input');
+      field.readOnly = true;
+      field.value = url.href;
+      field.setAttribute('aria-label','Link al post');
+      status.replaceChildren(field);
+      field.focus();
+      field.select();
+    }
+  });
+  const actions = el('div','','post-share');
+  actions.append(copy,whatsapp,facebook);
+  const details = el('details','','share-details');
+  details.append(el('summary','Condividi il post'),actions,status);
+  card.append(details);
 }
 function updateFilters() {
   document.querySelectorAll('[data-filter]').forEach(control => control.setAttribute('aria-pressed', String(control.dataset.filter === filter)));
@@ -205,7 +246,7 @@ function commentSection(post) {
   if (!member) {
     section.append(button('Iscriviti per commentare', event => openPanel('join', event.currentTarget, () => {
       renderFeed();
-      const sections = byId('feed').querySelectorAll('details');
+      const sections = byId('feed').querySelectorAll('.comments');
       const visiblePosts = Array.from(byId('feed').children);
       const index = visiblePosts.findIndex(card => card.dataset.post === String(posts.indexOf(post)));
       if (sections[index]) {
@@ -248,8 +289,10 @@ function commentSection(post) {
 function renderFeed() {
   const city = byId('territory').value.trim().toLocaleLowerCase('it');
   const matches = posts.filter(post => {
-    const categoryMatches = filter === 'opportunità' ? isOpportunity(post) :
+    const categoryMatches = filter === 'risolti' ? Boolean(post.resolution) :
+      filter === 'opportunità' ? isOpportunity(post) :
       filter ? post.type === filter : city || !isOpportunity(post);
+    if (!openedPost && post.resolution && ['opportunità','Cerchiamo'].includes(filter)) return false;
     return (!openedPost || post.id === openedPost) && categoryMatches && post.city.toLocaleLowerCase('it').includes(city);
   });
   byId('results').textContent = matches.length ? matches.length + (matches.length === 1 ? ' post' : ' post trovati') : 'Non ci sono ancora post per questa ricerca.';
@@ -260,6 +303,15 @@ function renderFeed() {
     card.tabIndex = -1;
     card.append(el('div', post.type + (post.sample ? ' · Esempio' : ''), 'tag'), el('h3', post.title),
       el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
+    if (post.resolution) {
+      const result = el('div','','post-resolution');
+      result.append(el('strong','Aiuto ricevuto'));
+      if (post.resolution.thanks) result.append(el('p',post.resolution.thanks));
+      card.append(result);
+    } else if (member && post.owner === networkService.id() && post.type === 'Cerchiamo') {
+      card.append(button('Aiuto ricevuto',event => openPanel('resolve',event.currentTarget,undefined,post)));
+    }
+    sharePost(post,card);
     if (openedPost) card.append(button('Torna ai risultati', () => {
       openedPost = undefined;
       renderFeed();
@@ -302,8 +354,9 @@ function appendContacts(parent, profile) {
 function renderProfiles() {
   const directory = byId('directory');
   directory.replaceChildren();
-  if (!profiles.length) directory.append(el('p', 'Presenta la tua realtà per creare la prima scheda.'));
-  for (const profile of profiles) {
+  const publicProfiles = profiles.filter(profile => !Object.values(profileKinds).includes(profile.kind));
+  if (!publicProfiles.length) directory.append(el('p', 'Presenta la tua realtà per creare la prima scheda.'));
+  for (const profile of publicProfiles) {
     const card = el('article');
     card.append(el('h3', profile.name), el('p', profile.kind + ' · ' + profile.city, 'meta'), el('p', profile.description));
     if (profile.visible) appendContacts(card, profile);
@@ -352,6 +405,10 @@ function setupComposer(form, preferredType) {
     const type = form.elements.type.value;
     const isEvent = type === 'Eventi';
     const opportunity = isOpportunity({type});
+    byId('post-title-label').textContent = type === 'Cerchiamo' ? 'Cosa ti serve?' :
+      type === 'Offriamo' ? 'Cosa puoi offrire?' : 'Titolo';
+    byId('post-body-label').textContent = opportunity ? 'Dettagli per organizzarsi' : 'Raccontaci';
+    form.elements.body.placeholder = opportunity ? 'Indica quantità, disponibilità o modalità di ritiro.' : '';
     form.elements.date.required = isEvent;
     byId('event-date').hidden = !isEvent && !opportunity;
     byId('post-date-label').textContent = isEvent ? 'Data dell’evento' : 'Entro quando (facoltativo)';
@@ -445,15 +502,57 @@ function setupInvite() {
     }
   });
 }
-function openPanel(key, trigger, resume) {
+function openPanel(key, trigger, resume, post) {
   previousFocus = trigger;
-  if (['publish','profile'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
+  const currentProfile = profiles.find(item => item.owner === networkService.id());
+  if (key === 'publish' && Object.values(profileKinds).includes(currentProfile?.kind)) {
+    return openPanel('proposal',trigger);
+  }
+  if (['publish','profile','proposal'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
   if (key === 'admin' && !moderator) return;
-  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind === 'Azienda' ? 'Presenta la tua azienda' : trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',resolve:'Aiuto ricevuto',proposal:'Proponi una collaborazione a Pet Carpet',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
   if (template) body.append(template.content.cloneNode(true));
+  if (key === 'proposal') {
+    const form = body.querySelector('form');
+    if (currentProfile) {
+      for (const field of ['name','city','email']) form.elements[field].value = currentProfile[field] || '';
+    }
+    form.elements.kind.value = trigger?.dataset.proposalKind || currentProfile?.kind || 'Azienda';
+    if (!form.elements.kind.value) form.elements.kind.value = 'Azienda';
+    form.addEventListener('submit',event => {
+      event.preventDefault();
+      submit(form,async () => {
+        const fields = Object.fromEntries(new FormData(form));
+        await networkService.rest('proposals','',{method:'POST',value:{...fields,owner:networkService.id()}});
+        dialog.close();
+        notice('Proposta inviata a Pet Carpet.');
+      });
+    });
+  }
+  if (key === 'resolve') {
+    const form = body.querySelector('form');
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      submit(form,async () => {
+        const thanks = form.elements.thanks.value.trim();
+        await networkService.rest('resolutions','',{method:'POST',value:{post_id:post.id,thanks},
+          prefer:'resolution=ignore-duplicates,return=minimal'});
+        dialog.close();
+        notice('Aiuto ricevuto. La richiesta è tra gli Aiuti riusciti.');
+        filter = 'risolti';
+        openedPost = undefined;
+        byId('territory').value = '';
+        updateFilters();
+        await loadNetwork().catch(() => notice('Esito salvato. Ricarica per aggiornare il Network.'));
+        const result = byId('post-' + post.id);
+        result?.scrollIntoView({block:'start'});
+        result?.focus({preventScroll:true});
+      });
+    });
+  }
   if (key === 'install' && installPrompt) {
     const control = byId('install-app');
     control.hidden = false;
@@ -486,8 +585,10 @@ function openPanel(key, trigger, resume) {
       google.addEventListener('click', async () => {
         google.disabled = true;
         const opportunity = Object.keys(opportunityTypes).find(key => opportunityTypes[key] === trigger?.dataset.opportunity);
-        const destination = trigger?.dataset.profileKind ? 'professionista' :
-          trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish';
+        const profile = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.profileKind);
+        const proposal = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.proposalKind);
+        const destination = proposal ? 'proposta-' + proposal : profile || (
+          trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish');
         try { await networkService.googleStart(destination); }
         catch {
           form.querySelector('[data-form-status]').textContent = 'Non riesco ad aprire Google. Riprova o continua con email.';
@@ -530,6 +631,16 @@ function openPanel(key, trigger, resume) {
     if (profile) for (const field of ['name','kind','city','description','phone','whatsapp','email']) form.elements[field].value = profile[field] || '';
     form.elements.kind.value = trigger?.dataset.profileKind || profile?.kind || 'Associazione';
     form.elements.public.checked = Boolean(profile?.visible);
+    const updateContactPrivacy = () => {
+      const isPrivate = Object.values(profileKinds).includes(form.elements.kind.value);
+      form.elements.public.disabled = isPrivate;
+      form.elements.public.closest('label').hidden = isPrivate;
+      form.querySelector('[data-profile-privacy]').textContent = isPrivate ?
+        'I dati di aziende e professionisti restano nella rubrica riservata di Pet Carpet.' :
+        'I recapiti sono accessibili alla redazione di Pet Carpet e appaiono nella scheda solo se scegli di mostrarli.';
+    };
+    updateContactPrivacy();
+    form.elements.kind.addEventListener('change',updateContactPrivacy);
     form.addEventListener('submit', event => {
       event.preventDefault();
       submit(form, async () => {
@@ -549,7 +660,26 @@ function openPanel(key, trigger, resume) {
     body.append(link);
   }
   if (key === 'admin') {
-    body.append(el('p','Recapiti delle realtà e moderazione dei contenuti.'));
+    const inbox = el('section','','proposal-inbox');
+    const proposalList = el('div','','proposal-list');
+    const loading = el('p','Caricamento delle proposte…','hint');
+    loading.setAttribute('role','status');
+    inbox.append(el('h3','Proposte di collaborazione'),loading,proposalList);
+    body.append(inbox,el('p','Recapiti delle realtà e moderazione dei contenuti.'));
+    networkService.rest('proposals','?order=created_at.desc&limit=100').then(rows => {
+      if (!inbox.isConnected) return;
+      loading.textContent = rows.length ? '' : 'Nessuna proposta ricevuta.';
+      for (const row of rows) {
+        const proposal = el('article','','card');
+        const reply = el('a','Rispondi via email','contact');
+        reply.href = 'mailto:' + encodeURIComponent(row.email) + '?subject=' + encodeURIComponent('Proposta di collaborazione · Pet Carpet');
+        proposal.append(el('h4',row.name),el('p',row.kind + ' · ' + row.city,'meta'),
+          el('p',row.message),reply);
+        proposalList.append(proposal);
+      }
+    }).catch(() => {
+      if (inbox.isConnected) loading.textContent = 'Le proposte non sono disponibili. Riapri la rubrica per riprovare.';
+    });
     for (const profile of profiles) {
       const card = el('article', '', 'card');
       card.append(el('h3', profile.name), el('p', profile.kind + ' · ' + profile.city, 'meta'));
@@ -626,6 +756,12 @@ dialog.addEventListener('close', () => {
   previousFocus?.focus();
 });
 const publishButton = document.querySelector('[data-publish]');
+document.querySelector('[data-company-jump]').addEventListener('click',event => {
+  event.preventDefault();
+  const heading = byId('partecipa-azienda').querySelector('h2');
+  heading.scrollIntoView({block:'start'});
+  heading.focus({preventScroll:true});
+});
 document.querySelectorAll('[data-publish],[data-opportunity]').forEach(control => {
   control.addEventListener('click', () => openPanel('publish', control));
 });
@@ -653,13 +789,20 @@ byId('sign-out').addEventListener('click', async () => {
   }
   await discovery;
   if (destination) {
-    const isProfile = ['professionista','profile'].includes(destination);
+    const profileKind = profileKinds[destination];
+    const proposalKind = destination.startsWith('proposta-') ? profileKinds[destination.slice(8)] : undefined;
+    const isProfile = Boolean(profileKind) || destination === 'profile';
     const opportunity = opportunityTypes[destination];
-    const trigger = opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
-      destination === 'professionista' ? document.querySelector('[data-profile-kind=Professionista]') :
+    const trigger = proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :
+      opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
+      profileKind ? document.querySelector('[data-profile-kind="' + profileKind + '"]') :
       isProfile ? document.querySelector('[data-open=profile]') : publishButton;
-    const next = () => openPanel(isProfile ? 'profile' : 'publish', trigger);
+    const next = () => openPanel(proposalKind ? 'proposal' : isProfile ? 'profile' : 'publish', trigger);
     if (member) next();
     else openPanel('google-profile', trigger, next);
+  } else if (validSharedPost) {
+    const post = posts.find(item => item.id === sharedPostId);
+    if (post) openPost(post);
+    else notice('Questo post non è disponibile. Puoi consultare le altre richieste e offerte.');
   } else if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
 })();
