@@ -26,5 +26,46 @@ if(!s.includes('VPET_QUALITY_2026'))s=s.replace('</head>',`<style id="VPET_QUALI
 if(!s.includes('VPET_SW_REGISTER'))s=s.replace('</body>',`<script id="VPET_SW_REGISTER">if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}</script></body>`);
 
 await writeFile(p,s,'utf8');
-await writeFile(path.join(out,'sw.js'),`const C='vpet-shell-v2';const A=['/','/manifest.webmanifest','/network/icon-180.png','/network/icon-192.png','/network/icon-512.png','/assets/dashboard.png'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(A)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).then(r=>{const x=r.clone();caches.open(C).then(c=>c.put('/',x));return r}).catch(()=>caches.match('/')));return}if(u.origin===location.origin){e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{if(r.ok){const x=r.clone();caches.open(C).then(k=>k.put(e.request,x))}return r})))}});`);
+await writeFile(path.join(out,'sw.js'),`const C = 'vpet-shell-v3';
+const assets = ['/','/manifest.webmanifest','/network/icon-180.png','/network/icon-192.png','/network/icon-512.png','/assets/dashboard.png'];
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(C).then(cache => cache.addAll(assets)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys
+    .filter(key => key.startsWith('vpet-shell-') && key !== C)
+    .map(key => caches.delete(key)))).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (request.mode === 'navigate') {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(),6500);
+    event.respondWith(fetch(request,{signal:controller.signal}).then(response => {
+      if (response.ok && !url.search) {
+        const copy = response.clone();
+        event.waitUntil(caches.open(C).then(cache => cache.put(request,copy)).catch(() => {}));
+      }
+      return response;
+    }).catch(async () => {
+      const cache = await caches.open(C);
+      return await cache.match(url.pathname) || await cache.match('/') || Response.error();
+    }).finally(() => clearTimeout(timeout)));
+    return;
+  }
+  if (['video','audio'].includes(request.destination)) return;
+  event.respondWith(caches.open(C).then(async cache => {
+    const refresh = async () => {
+      const response = await fetch(request);
+      if (response.ok && response.status !== 206) event.waitUntil(cache.put(request,response.clone()).catch(() => {}));
+      return response;
+    };
+    if (url.pathname.startsWith('/network/') && ['script','style'].includes(request.destination) && !url.search) {
+      return refresh().catch(async () => await cache.match(request) || Response.error());
+    }
+    return (await cache.match(request)) || refresh();
+  }));
+});`);
 console.log('VPET quality layer applied');
