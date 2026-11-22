@@ -27,6 +27,7 @@ const networkService = (() => {
   const auth = (path, value) => request('/auth/v1/' + path, {method:'POST',value,anonymous:true});
   return {
     rest,
+    rpc: (name,value) => request('/rest/v1/rpc/network_' + name,{method:'POST',value}),
     id: () => session?.user?.id,
     async googleAvailable() {
       try {

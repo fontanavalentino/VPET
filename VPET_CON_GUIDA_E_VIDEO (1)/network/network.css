@@ -121,3 +121,12 @@ form input,form select,form textarea,.territory input{min-width:0}
 .join-network .actions{margin-top:.7rem}
 
 .shared-post-join{margin:.6rem .55rem .2rem 0}
+
+#initiative-posts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:.6rem;margin-top:.8rem}
+#initiative-posts:empty{display:none}
+.admin-report{padding:1rem;border:1px solid var(--line);border-radius:14px;margin:1rem 0;background:var(--paper)}
+.admin-report table{width:100%;border-collapse:collapse;text-align:left;font-size:.9rem}
+.admin-report th,.admin-report td{padding:.35rem;border-bottom:1px solid var(--line)}
+.admin-report th:nth-child(n+2),.admin-report td:nth-child(n+2){text-align:right}
+.admin-report [data-report-export]{margin-top:.75rem}
+.report-channels{padding-left:1.2rem}

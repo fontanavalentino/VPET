@@ -228,6 +228,11 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   }));
   await page.route(origin + '/rest/**',route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('network_weekly_report')) {
+      const metrics = {openings:3,members:2,requests:1,offers:0,resolved:1,proposals:2,culture_proposals:0,culture_published:0};
+      return route.fulfill({json:{from:'2026-11-16',to:'2026-11-22',tracking_from:'2026-11-22',channels:{whatsapp:3},
+        week:metrics,total:metrics,active_partnerships:1,next_contacts:0},headers});
+    }
     if (path.endsWith('network_proposals')) {
       if (route.request().method() === 'POST') privateProposal = route.request().postDataJSON();
       return route.fulfill({json:privateProposal ? [{...privateProposal,id:'proposal-qa'}] : [],headers});
@@ -247,7 +252,9 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   await article.getByRole('heading',{name:'Servono coperte'}).waitFor();
   await article.getByText('Condividi il post',{exact:true}).click();
   const shareUrl = await article.getByRole('link',{name:'WhatsApp'}).getAttribute('href');
-  assert(new URL(shareUrl).searchParams.get('text').includes('?post=' + requestId + '#network'));
+  const shared = new URL(new URL(shareUrl).searchParams.get('text').split('\n').at(-1));
+  assert.equal(shared.searchParams.get('post'),requestId);
+  assert.equal(shared.searchParams.get('da'),'whatsapp');
   await article.getByRole('button',{name:'Aiuto ricevuto'}).click();
   await page.getByLabel('Ringraziamento (facoltativo)').fill('Grazie, le coperte sono arrivate.');
   await page.getByRole('button',{name:'Conferma aiuto ricevuto'}).click();
@@ -267,6 +274,9 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   assert.equal(privateProposal.kind,'Azienda');
   assert.equal(await article.getByText('Possiamo ospitare una raccolta.').count(),0);
   await page.getByRole('button',{name:'Rubrica Pet Carpet'}).click();
+  await page.getByRole('heading',{name:'Report settimanale VPET'}).waitFor();
+  await page.getByRole('cell',{name:'Aperture del Network'}).waitFor();
+  await page.getByText('WhatsApp · 3',{exact:true}).waitFor();
   await page.getByText('Nuova · Gestisci collaborazione').click();
   await page.getByLabel('Stato',{exact:true}).selectOption('Attiva');
   await page.getByLabel('Prossimo contatto').fill('2026-12-15');

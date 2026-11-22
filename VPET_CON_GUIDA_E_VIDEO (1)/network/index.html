@@ -34,9 +34,13 @@
 </section>
 <section class="network-recent solidarity-culture" id="cultura-solidale" aria-labelledby="culture-title">
 <h2 id="culture-title" tabindex="-1">Cultura solidale</h2>
-<p>Libri, racconti, opere e canzoni sugli animali possono sostenere un rifugio o un progetto sociale. Presenta la tua opera a Pet Carpet e raccontaci chi potrà beneficiarne e come.</p>
-<div class="actions"><button class="primary" type="button" data-open="proposal" data-proposal-kind="Opera solidale">Proponi un’opera o una canzone</button><button type="button" data-opportunity="Opere solidali" hidden>Pubblica un’opera selezionata</button></div>
+<p>Libri, racconti, canzoni e progetti fotografici sugli animali possono sostenere un rifugio o un progetto sociale. Presenta la tua opera a Pet Carpet e raccontaci chi potrà beneficiarne e come.</p>
+<div class="actions"><button class="primary" type="button" data-open="proposal" data-proposal-kind="Opera solidale">Proponi un’opera o una canzone</button><button type="button" data-open="proposal" data-proposal-kind="Opera solidale" data-photography>Proponi un progetto fotografico</button><button type="button" data-opportunity="Opere solidali" hidden>Pubblica un’opera selezionata</button></div>
 <div id="culture-posts"></div>
+<h3>Raccolte fondi e altre iniziative solidali</h3>
+<p>Qualsiasi realtà può proporre un’iniziativa. Pet Carpet verifica il progetto e autorizza la pubblicazione.</p>
+<button type="button" data-open="proposal" data-proposal-kind="Iniziativa solidale">Proponi un’iniziativa solidale</button>
+<div id="initiative-posts"></div>
 </section>
 <section class="network-recent join-network" aria-labelledby="join-network-title">
 <h2 id="join-network-title">Fai crescere la rete</h2>
@@ -58,7 +62,7 @@
 <div class="example-grid">
 <article><h3>Chiedi una mano</h3><p>Ti servono crocchette, cibo umido, coperte o guinzagli? Cerchi volontari per i turni in rifugio o un passaggio per ritirare le donazioni? Scrivi cosa ti serve, dove e quando.</p></article>
 <article><h3>Offri quello che puoi</h3><p>Hai un magazzino, un furgone o qualche ora libera? Puoi offrire un punto di raccolta, aiutare con un trasporto o dare una mano durante un evento.</p></article>
-<article><h3>Promuovi un’iniziativa solidale</h3><p>Organizzi una raccolta fondi, un mercatino solidale o un banchetto di beneficenza? Presenta anche calendari, gadget e idee regalo solidali. Racconta chi aiuterà il ricavato e come partecipare.</p></article>
+<article><h3>Promuovi un’iniziativa solidale</h3><p>Organizzi una raccolta fondi, un mercatino solidale o un banchetto di beneficenza? Presenta anche calendari, gadget e idee regalo solidali. Racconta chi aiuterà il ricavato e come partecipare.</p><button type="button" data-open="proposal" data-proposal-kind="Iniziativa solidale">Invia il progetto a Pet Carpet</button></article>
 </div>
 <p class="examples-quote">Una coperta scalda un animale. Una rete fa arrivare quella coperta proprio dove serve.</p>
 <details class="example-sources"><summary>Da dove vengono gli esempi</summary><ul>
@@ -179,7 +183,7 @@
 <template id="proposal">
 <form>
 <p>Pet Carpet riceve la tua proposta in privato e ti ricontatta per valutare insieme a chi presentarla.</p>
-<label>Tipo di proposta <select name="kind"><option>Azienda</option><option>Professionista</option><option>Opera solidale</option></select></label>
+<label>Tipo di proposta <select name="kind"><option>Azienda</option><option>Professionista</option><option>Opera solidale</option><option>Iniziativa solidale</option></select></label>
 <label>Nome o ragione sociale <input name="name" maxlength="90" required></label>
 <label>Territorio <input name="city" maxlength="80" required></label>
 <label>Email per ricontattarti <input name="email" type="email" maxlength="150" required></label>
@@ -189,12 +193,21 @@
 <button class="primary" type="submit">Invia a Pet Carpet</button>
 </form>
 </template>
+<template id="report">
+<section class="admin-report" aria-labelledby="report-title">
+<h3 id="report-title">Report settimanale VPET</h3>
+<label>Settimana <select aria-label="Settimana" name="week"></select></label>
+<p data-report-status role="status"></p>
+<div data-report-contents></div>
+<button type="button" data-report-export hidden>Scarica CSV</button>
+</section>
+</template>
 <template id="followup">
 <details class="proposal-followup">
 <summary>Gestisci collaborazione</summary>
 <form>
 <div class="pair">
-<label>Stato <select name="status" aria-label="Stato"><option>Nuova</option><option>In valutazione</option><option>Attiva</option><option>Conclusa</option></select></label>
+<label>Stato <select name="status" aria-label="Stato"><option>Nuova</option><option>In valutazione</option><option>Autorizzata</option><option>Attiva</option><option>Conclusa</option><option>Respinta</option></select></label>
 <label>Prossimo contatto <input name="next_contact" type="date"></label>
 </div>
 <label>Note interne <textarea name="internal_note" maxlength="2000" placeholder="Referente Pet Carpet, realtà coinvolta, accordi presi e prossima azione"></textarea></label>
