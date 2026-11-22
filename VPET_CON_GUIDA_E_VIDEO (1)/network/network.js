@@ -15,6 +15,7 @@ let recorder;
 let pendingFile;
 let previewUrl;
 let previousFocus;
+let member;
 
 function el(tag, value, className) {
   const node = document.createElement(tag);
@@ -93,6 +94,7 @@ function cleanupMedia() {
   pendingFile = undefined;
 }
 function setupComposer(form) {
+  byId('publishing-as').textContent = 'Pubblicherai come ' + member;
   const file = byId('attachment');
   const record = byId('record');
   const preview = byId('media-preview');
@@ -165,6 +167,7 @@ function setupComposer(form) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     const post = Object.fromEntries(new FormData(form));
+    post.author = member;
     if (post.type !== 'Eventi') delete post.date;
     if (pendingFile) {
       post.file = pendingFile;
@@ -178,41 +181,45 @@ function setupComposer(form) {
     dialog.close();
   });
 }
-function setupInvite(form) {
-  form.addEventListener('submit', event => {
-    event.preventDefault();
-    const url = new URL('/network/', location.origin);
-    const message = 'Ciao! Ti invito a scoprire VPET Network, il progetto di Pet Carpet per far incontrare chi aiuta gli animali. ' + url;
-    const share = el('textarea');
-    share.readOnly = true;
-    share.value = message;
-    share.setAttribute('aria-label', 'Testo dell’invito');
-    const whatsapp = el('a', 'Apri WhatsApp', 'contact');
-    whatsapp.href = 'https://wa.me/?text=' + encodeURIComponent(message);
-    const email = el('a', 'Apri Email', 'contact');
-    email.href = 'mailto:?subject=VPET%20Network&body=' + encodeURIComponent(message);
-    const target = byId('invitation');
-    target.replaceChildren(share, whatsapp, email);
-    if (navigator.clipboard) target.append(button('Copia testo', async () => {
-      try {
-        await navigator.clipboard.writeText(message);
-        target.append(el('p', 'Invito copiato.', 'hint'));
-      } catch {
-        share.focus();
-        share.select();
-      }
-    }));
+function setupInvite() {
+  const url = new URL('/network/', location.origin);
+  url.searchParams.set('iscriviti', '1');
+  const input = byId('invite-link');
+  input.value = url.href;
+  const message = 'Ti invito su VPET Network, la comunità di Pet Carpet per chi aiuta gli animali. Iscriviti e raccontaci cosa fai, cosa cerchi o come puoi dare una mano. ' + url.href;
+  byId('invite-whatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(message);
+  byId('invite-email').href = 'mailto:?subject=' + encodeURIComponent('Un invito a VPET Network') + '&body=' + encodeURIComponent(message);
+  byId('copy-invite').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(url.href);
+      byId('invite-status').textContent = 'Link copiato.';
+    } catch {
+      input.focus();
+      input.select();
+      byId('invite-status').textContent = 'Link selezionato. Tocca Copia nel menu del telefono.';
+    }
   });
 }
 function openPanel(key, trigger) {
   previousFocus = trigger;
-  const titles = {publish:'Pubblica nel network',profile:'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  const titles = {join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
   if (template) body.append(template.content.cloneNode(true));
   if (key === 'publish') setupComposer(body.querySelector('form'));
-  if (key === 'invite') setupInvite(body.querySelector('form'));
+  if (key === 'invite') setupInvite();
+  if (key === 'join') body.querySelector('form').addEventListener('submit', event => {
+    event.preventDefault();
+    member = String(new FormData(event.currentTarget).get('displayName')).trim();
+    if (!member) {
+      event.currentTarget.elements.displayName.value = '';
+      event.currentTarget.reportValidity();
+      return;
+    }
+    document.querySelector('[data-publish]').textContent = 'Pubblica';
+    openPanel('publish', trigger);
+  });
   if (key === 'profile') body.querySelector('form').addEventListener('submit', event => {
     event.preventDefault();
     profiles.unshift(Object.fromEntries(new FormData(event.currentTarget)));
@@ -220,7 +227,10 @@ function openPanel(key, trigger) {
     dialog.close();
   });
   if (key === 'privacy') {
-    body.append(el('p','Questa anteprima conserva i dati inseriti nella memoria della pagina fino al suo ricaricamento. Usa nomi, recapiti e allegati fittizi.'),
+    const privacyContact = el('a', 'petcarpetfestival@gmail.com');
+    privacyContact.href = 'mailto:petcarpetfestival@gmail.com?subject=Privacy%20VPET%20Network';
+    body.append(el('p','VPET Network è un progetto dell’Associazione Pet Carpet, Via Alessandro Castelli 36 F, Roma.'), privacyContact,
+      el('p','Questa anteprima conserva i dati inseriti nella memoria della pagina fino al suo ricaricamento. Usa nomi, recapiti e allegati fittizi.'),
       el('p','Il microfono si attiva solo su richiesta e il vocale resta nella sessione di prova. Gli inviti aprono il canale che scegli, dove decidi tu se inviarli. WhatsApp è un servizio esterno.'),
       el('p','Per il lancio pubblico serviranno l’informativa completa di Pet Carpet, le regole del network e le preferenze di contatto per ogni canale.'));
   }
@@ -252,7 +262,8 @@ function openPanel(key, trigger) {
       body.append(card);
     }
   }
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
+  body.querySelector('input:not([type=checkbox]), textarea, button')?.focus();
 }
 document.querySelectorAll('[data-open]').forEach(item => item.addEventListener('click', () => openPanel(item.dataset.open, item)));
 document.querySelectorAll('[data-filter]').forEach(item => item.addEventListener('click', () => {
@@ -266,5 +277,8 @@ dialog.addEventListener('close', () => {
   cleanupMedia();
   previousFocus?.focus();
 });
+const publishButton = document.querySelector('[data-publish]');
+publishButton.addEventListener('click', () => openPanel(member ? 'publish' : 'join', publishButton));
 renderFeed();
 renderProfiles();
+if (new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
