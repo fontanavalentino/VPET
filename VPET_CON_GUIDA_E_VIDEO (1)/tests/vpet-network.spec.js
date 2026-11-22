@@ -138,6 +138,8 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   await page.getByRole('button',{name:'Entra nel network',exact:true}).click();
   const network = page.locator('#network');
   await network.getByRole('heading',{name:'Chi cerca, chi offre'}).waitFor();
+  await network.getByRole('heading',{name:'Come puoi fare rete'}).waitFor();
+  await network.getByText(/Organizzi una raccolta fondi, un mercatino solidale/).waitFor();
   await page.evaluate(z => document.documentElement.style.fontSize = (16*z)+'px',zoom);
   assert(await network.evaluate(host => host.scrollWidth <= host.clientWidth + 1));
   await network.getByRole('button',{name:'Invita una realtà',exact:true}).first().click();

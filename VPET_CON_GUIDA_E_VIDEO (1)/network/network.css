@@ -65,3 +65,11 @@ form input,form select,form textarea,.territory input{min-width:0}
 
 .hero-copy .hero-example{border-left:3px solid var(--gold);padding-left:1rem}
 .hero-copy .hero-access{font-size:1rem;margin-bottom:.5rem}
+.network-examples{max-width:1120px;margin:2rem auto 0;padding:0 1rem}
+.example-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin-top:1rem}
+.example-grid article{border:1px solid var(--line);border-radius:16px;background:#fff;padding:1rem;overflow-wrap:anywhere}
+.example-grid article p{margin:.7rem 0 0}
+.examples-quote{border-left:4px solid #9f7429;padding:.5rem .85rem;margin:1.1rem 0;color:var(--green);font-weight:700}
+.example-sources summary{cursor:pointer;min-height:44px;padding:.45rem 0;color:var(--mute)}
+.example-sources li+li{margin-top:.4rem}
+@media(max-width:760px){.example-grid{grid-template-columns:minmax(0,1fr)}}
