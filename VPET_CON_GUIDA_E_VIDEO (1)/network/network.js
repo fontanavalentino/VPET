@@ -239,6 +239,14 @@ function sharePost(post, card) {
     }
   });
   const actions = el('div','','post-share');
+  if (navigator.share) {
+    actions.append(button('Condividi con un’app', async () => {
+      try { await navigator.share({title:post.title,url:url.href}); }
+      catch (error) {
+        if (error.name !== 'AbortError') status.textContent = 'Puoi condividere il post usando Copia link.';
+      }
+    }));
+  }
   actions.append(copy,whatsapp,facebook);
   const details = el('details','','share-details');
   details.append(el('summary','Condividi il post'),actions,status);
@@ -529,6 +537,14 @@ function setupInvite() {
   const input = byId('invite-link');
   input.value = url.href;
   const message = 'Ti invito su VPET Network, la comunità di Pet Carpet per chi aiuta gli animali. Iscriviti e raccontaci cosa fai, cosa cerchi o come puoi dare una mano. ' + url.href;
+  if (navigator.share) {
+    byId('copy-invite').after(button('Condividi con un’app', async () => {
+      try { await navigator.share({title:'Un invito a VPET Network',text:message.slice(0,-url.href.length).trim(),url:url.href}); }
+      catch (error) {
+        if (error.name !== 'AbortError') byId('invite-status').textContent = 'Puoi invitare altre persone usando Copia link.';
+      }
+    }));
+  }
   byId('invite-whatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(message);
   byId('invite-email').href = 'mailto:?subject=' + encodeURIComponent('Un invito a VPET Network') + '&body=' + encodeURIComponent(message);
   byId('copy-invite').addEventListener('click', async () => {
