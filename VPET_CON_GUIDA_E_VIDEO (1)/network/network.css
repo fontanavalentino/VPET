@@ -116,3 +116,6 @@ form input,form select,form textarea,.territory input{min-width:0}
 #culture-posts:empty{display:none}
 
 .culture-proposal-fields{display:grid;gap:1rem}
+
+.join-network{padding:1rem 1.15rem;background:#e4ebe2;border-radius:16px}
+.join-network .actions{margin-top:.7rem}

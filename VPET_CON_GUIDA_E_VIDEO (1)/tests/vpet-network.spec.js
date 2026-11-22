@@ -57,8 +57,14 @@ for (const [age,width,zoom] of profiles) test('VPET Network · scenario ' + age,
   await page.getByText('Venti coperte').waitFor();
   if(age===10) {
    assert(!await page.getByRole('button',{name:'Rubrica Pet Carpet'}).isVisible());
-   await page.getByRole('button',{name:'Iscriviti e pubblica'}).click();
-   assert.equal(await page.getByRole('checkbox').count(),1);
+   await page.getByRole('button',{name:'Iscriviti alla rete',exact:true}).click();
+   await page.getByLabel('Nome da mostrare nel network').fill('Nuovo membro QA');
+   await page.getByLabel('Email',{exact:true}).fill('nuovo@example.invalid');
+   await page.getByLabel('Password',{exact:true}).fill('Password-test-2026');
+   await page.getByRole('checkbox').check();
+   await page.getByRole('button',{name:'Iscriviti con email'}).click();
+   await page.getByText('Ora fai parte della rete.',{exact:false}).waitFor();
+   assert.equal(await page.getByRole('dialog').isVisible(),false);
   } else {
    await page.getByRole('button',{name:'Iscriviti e pubblica'}).click();
    await page.getByLabel('Nome da mostrare nel network').fill('Utente QA');

@@ -38,6 +38,11 @@
 <div class="actions"><button class="primary" type="button" data-open="proposal" data-proposal-kind="Opera solidale">Proponi un’opera o una canzone</button><button type="button" data-opportunity="Opere solidali" hidden>Pubblica un’opera selezionata</button></div>
 <div id="culture-posts"></div>
 </section>
+<section class="network-recent join-network" aria-labelledby="join-network-title">
+<h2 id="join-network-title">Fai crescere la rete</h2>
+<p>Iscriviti per pubblicare, commentare e dare una mano. Conosci un volontario, un rifugio o qualcuno che può aiutare? Invitalo a entrare in VPET.</p>
+<div class="actions"><button type="button" class="primary" id="join-network" data-join-network>Iscriviti alla rete</button><button type="button" data-open="invite">Invita chi può aiutare</button></div>
+</section>
 <section class="network-display" id="network-display" aria-labelledby="display-title">
 <div class="display-header"><div><p class="eyebrow">DALLE ASSOCIAZIONI</p><h2 id="display-title">Chi cerca, chi offre</h2></div><button type="button" id="display-search">Cerca richieste e offerte</button></div>
 <div id="display-card"><p>Le richieste e le offerte delle associazioni appariranno qui.</p></div>
@@ -219,7 +224,7 @@
 </form>
 </template>
 <template id="invite">
-<p>Invita un’associazione, un’azienda o un professionista che può dare una mano.</p>
+<p>Invita una persona, un volontario o una realtà che può dare una mano.</p>
 <label>Link di iscrizione <input id="invite-link" type="url" readonly></label>
 <div class="invite-actions">
 <button type="button" class="primary" id="copy-invite">Copia link</button>

@@ -101,6 +101,7 @@ async function loadMember(name) {
   document.querySelector('[data-opportunity="Opere solidali"]').hidden = !moderator;
   document.querySelector('[data-publish]').textContent = member ? 'Pubblica' : 'Iscriviti e pubblica';
   byId('sign-out').hidden = !member;
+  byId('join-network').hidden = Boolean(member);
 }
 function el(tag, value, className) {
   const node = document.createElement(tag);
@@ -643,7 +644,7 @@ function openPanel(key, trigger, resume, post) {
         const opportunity = Object.keys(opportunityTypes).find(key => opportunityTypes[key] === trigger?.dataset.opportunity);
         const profile = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.profileKind);
         const proposal = Object.keys(proposalKinds).find(key => proposalKinds[key] === trigger?.dataset.proposalKind);
-        const destination = proposal ? 'proposta-' + proposal : profile || (
+        const destination = trigger?.hasAttribute('data-join-network') ? 'join-network' : proposal ? 'proposta-' + proposal : profile || (
           trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish');
         try { await networkService.googleStart(destination); }
         catch {
@@ -836,6 +837,18 @@ dialog.addEventListener('close', () => {
   previousFocus?.focus();
 });
 const publishButton = document.querySelector('[data-publish]');
+const joinButton = byId('join-network');
+function welcomeNetwork() {
+  const url = new URL(location.href);
+  url.searchParams.delete('iscriviti');
+  if (publishButton.getRootNode() !== document) url.hash = 'network';
+  history.replaceState(null,'',url.pathname + url.search + url.hash);
+  if (dialog.open) dialog.close();
+  notice('Ora fai parte della rete. Puoi pubblicare, commentare e invitare chi può aiutare.');
+  const status = byId('network-status');
+  status.scrollIntoView({block:'center'});
+}
+joinButton.addEventListener('click',() => openPanel('join',joinButton,welcomeNetwork));
 document.querySelectorAll('[data-network-jump]').forEach(link => link.addEventListener('click',event => {
   event.preventDefault();
   const heading = byId(link.hash.slice(1)).querySelector('h2');
@@ -873,16 +886,17 @@ byId('sign-out').addEventListener('click', async () => {
     const proposalKind = destination.startsWith('proposta-') ? proposalKinds[destination.slice('proposta-'.length)] : undefined;
     const isProfile = Boolean(profileKind) || destination === 'profile';
     const opportunity = opportunityTypes[destination];
-    const trigger = proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :
+    const trigger = destination === 'join-network' ? joinButton : proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :
       opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
       profileKind ? document.querySelector('[data-profile-kind="' + profileKind + '"]') :
       isProfile ? document.querySelector('[data-open=profile]') : publishButton;
-    const next = () => openPanel(proposalKind ? 'proposal' : isProfile ? 'profile' : 'publish', trigger);
+    const next = destination === 'join-network' ? welcomeNetwork :
+      () => openPanel(proposalKind ? 'proposal' : isProfile ? 'profile' : 'publish', trigger);
     if (member) next();
     else openPanel('google-profile', trigger, next);
   } else if (validSharedPost) {
     const post = posts.find(item => item.id === sharedPostId);
     if (post) openPost(post);
     else notice('Questo post non è disponibile. Puoi consultare le altre richieste e offerte.');
-  } else if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
+  } else if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join',joinButton,welcomeNetwork);
 })();
