@@ -419,7 +419,7 @@ function openPanel(key, trigger, resume) {
   previousFocus = trigger;
   if (['publish','profile'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
   if (key === 'admin' && !moderator) return;
-  const titles = {install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  const titles = {install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
@@ -470,6 +470,7 @@ function openPanel(key, trigger, resume) {
     const form = body.querySelector('form');
     const profile = profiles.find(item => item.owner === networkService.id());
     if (profile) for (const field of ['name','kind','city','description','phone','whatsapp','email']) form.elements[field].value = profile[field] || '';
+    form.elements.kind.value = trigger?.dataset.profileKind || profile?.kind || 'Associazione';
     form.elements.public.checked = Boolean(profile?.visible);
     form.addEventListener('submit', event => {
       event.preventDefault();

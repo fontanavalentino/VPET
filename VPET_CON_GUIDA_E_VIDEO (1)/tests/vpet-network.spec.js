@@ -81,7 +81,7 @@ for (const [age,width,zoom] of profiles) test('VPET Network · scenario ' + age,
    await card.getByRole('button',{name:'Pubblica commento'}).click();
    await card.getByText('Ci sono anch’io!').waitFor();
    await page.getByRole('button',{name:'Presenta la tua realtà'}).click();
-   await page.getByLabel('Nome della realtà').fill('Associazione QA');
+   await page.getByLabel('Nome o nome della realtà').fill('Associazione QA');
    await page.getByRole('dialog').getByLabel('Territorio').fill('Roma');
    await page.getByLabel('Chi siete e cosa fate').fill('Aiutiamo gli animali.');
    await page.getByLabel('Telefono',{exact:true}).fill('+390612345678');
@@ -139,6 +139,8 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   const network = page.locator('#network');
   await network.getByRole('heading',{name:'Chi cerca, chi offre'}).waitFor();
   await network.getByRole('heading',{name:'Come puoi fare rete'}).waitFor();
+  await network.getByRole('heading',{name:'Sei un professionista e vuoi entrare nella rete?'}).waitFor();
+  assert.match(await network.getByRole('link',{name:'Proponi una collaborazione'}).getAttribute('href'),/Professionisti/);
   await network.getByText(/Organizzi una raccolta fondi, un mercatino solidale/).waitFor();
   await page.evaluate(z => document.documentElement.style.fontSize = (16*z)+'px',zoom);
   assert(await network.evaluate(host => host.scrollWidth <= host.clientWidth + 1));

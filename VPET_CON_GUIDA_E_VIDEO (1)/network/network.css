@@ -73,3 +73,6 @@ form input,form select,form textarea,.territory input{min-width:0}
 .example-sources summary{cursor:pointer;min-height:44px;padding:.45rem 0;color:var(--mute)}
 .example-sources li+li{margin-top:.4rem}
 @media(max-width:760px){.example-grid{grid-template-columns:minmax(0,1fr)}}
+#professionisti ul{padding-inline-start:1.2em}
+#professionisti li+li{margin-top:.55rem}
+#professionisti .actions{display:flex;margin-top:.75rem}

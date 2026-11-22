@@ -66,7 +66,21 @@
 <div class="panel company"><h2>Sei un’azienda e vuoi entrare?</h2><p>Raccontaci che cosa puoi fare per gli animali e cosa puoi mettere a disposizione. Prodotti, spazi, servizi o tempo del tuo team possono fare la differenza.</p>
 <a class="contact" href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet&amp;body=Buongiorno%20Pet%20Carpet%2C%0D%0A%0D%0AAzienda%3A%20%0D%0AReferente%20e%20recapito%3A%20%0D%0ATerritorio%3A%20%0D%0ACosa%20possiamo%20fare%20o%20mettere%20a%20disposizione%3A%20%0D%0A">Scrivi a Pet Carpet</a>
 <p class="hint"><a href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet">petcarpetfestival@gmail.com</a></p></div>
-<div class="panel"><h2>Le realtà del network</h2><div id="directory"></div></div>
+<div class="panel company" id="professionisti">
+<h2>Sei un professionista e vuoi entrare nella rete?</h2>
+<p>Le tue competenze possono dare a un’associazione il tempo e gli strumenti per aiutare più animali.</p>
+<ul>
+<li><strong>Avvocati</strong> per orientamento legale e accordi di collaborazione.</li>
+<li><strong>Commercialisti e consulenti</strong> per organizzazione, rendicontazione, comunicazione o progetti.</li>
+<li><strong>Educatori cinofili e veterinari</strong> per incontri formativi e supporto alle iniziative.</li>
+<li><strong>Fotografi, grafici e altre figure</strong> per raccontare un progetto, preparare una campagna o far conoscere gli animali in cerca di casa.</li>
+</ul>
+<p>Puoi proporre un incontro, qualche ora del tuo tempo o una collaborazione continuativa.</p>
+<div class="actions">
+<button type="button" data-open="profile" data-profile-kind="Professionista">Presentati come professionista</button>
+<a class="contact" href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet%20-%20Professionisti&amp;body=Buongiorno%20Pet%20Carpet%2C%0D%0A%0D%0ANome%20e%20professione%3A%20%0D%0ATerritorio%20o%20disponibilit%C3%A0%20online%3A%20%0D%0ACome%20posso%20aiutare%3A%20%0D%0ADisponibilit%C3%A0%20e%20recapito%3A%20%0D%0A">Proponi una collaborazione</a>
+</div></div>
+<div class="panel"><h2>Chi fa parte del network</h2><div id="directory"></div></div>
 </aside>
 </div>
 </main>
@@ -124,8 +138,8 @@
 </template>
 <template id="profile">
 <form>
-<label>Nome della realtà <input name="name" maxlength="90" required></label>
-<div class="pair"><label>Tipo <select name="kind"><option>Associazione</option><option>Azienda</option><option>Altra realtà</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
+<label>Nome o nome della realtà <input name="name" maxlength="90" required></label>
+<div class="pair"><label>Tipo <select name="kind"><option>Associazione</option><option>Azienda</option><option>Professionista</option><option>Altra realtà</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
 <label>Chi siete e cosa fate <textarea name="description" maxlength="1200" required></textarea></label>
 <label>Telefono <input name="phone" type="tel" maxlength="22"></label>
 <label>WhatsApp <input name="whatsapp" type="tel" maxlength="22" placeholder="+39"></label>
@@ -136,7 +150,7 @@
 </form>
 </template>
 <template id="invite">
-<p>Invita un’associazione, un’azienda o una realtà che può dare una mano.</p>
+<p>Invita un’associazione, un’azienda o un professionista che può dare una mano.</p>
 <label>Link di iscrizione <input id="invite-link" type="url" readonly></label>
 <div class="invite-actions">
 <button type="button" class="primary" id="copy-invite">Copia link</button>
