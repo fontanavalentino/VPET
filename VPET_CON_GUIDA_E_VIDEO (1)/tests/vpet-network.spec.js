@@ -250,7 +250,7 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   assert.equal(await page.getByRole('button',{name:'Aiuti riusciti'}).getAttribute('aria-pressed'),'true');
   await page.getByRole('link',{name:'Partecipa con la tua attività'}).click();
   await page.getByRole('button',{name:'Proponi una collaborazione a Pet Carpet',exact:true}).click();
-  assert.equal(await page.getByLabel('Tipo di attività').inputValue(),'Azienda');
+  assert.equal(await page.getByLabel('Tipo di proposta').inputValue(),'Azienda');
   await page.getByLabel('Nome o ragione sociale').fill('Negozio QA');
   await page.getByRole('dialog').getByLabel('Territorio').fill('Roma');
   await page.getByLabel('Email per ricontattarti').fill('proposta@example.invalid');
@@ -269,4 +269,11 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   await page.getByText('Aggiornamento salvato.').waitFor();
   assert.equal(savedFollowup.next_contact,'2026-12-15');
   assert.equal(savedFollowup.status,'Attiva');
+  await page.keyboard.press('Escape');
+  await page.getByRole('link',{name:'Cultura solidale'}).click();
+  await page.getByRole('button',{name:'Proponi un’opera o una canzone'}).click();
+  assert.equal(await page.getByLabel('Tipo di proposta').inputValue(),'Opera solidale');
+  await page.getByLabel('Titolo, opera e progetto che vuoi sostenere').waitFor();
+  await page.getByLabel('Associazione o progetto beneficiario').fill('Rifugio QA');
+  await page.getByLabel('Come contribuisce l’opera?').fill('2 euro a copia');
 });

@@ -23,7 +23,9 @@ let openedPost;
 const sharedPostId = new URLSearchParams(location.search).get('post');
 const validSharedPost = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sharedPostId);
 const profileKinds = {azienda:'Azienda',professionista:'Professionista'};
+const proposalKinds = {...profileKinds,opera:'Opera solidale'};
 const opportunityTypes = {request:'Cerchiamo',offer:'Offriamo'};
+const cultureLinkLabel = 'Link del progetto: ';
 const dateFormat = new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'UTC'});
 const isOpportunity = post => ['Cerchiamo','Offriamo'].includes(post.type);
 
@@ -71,6 +73,7 @@ async function loadNetwork() {
   renderFeed();
   renderProfiles();
   renderRecent();
+  renderCulture();
   initDisplay();
 }
 async function submit(form, action) {
@@ -95,6 +98,7 @@ async function loadMember(name) {
   if (member && !rows.length) await networkService.put('members', {id,name:member});
   moderator = staff.length > 0;
   document.querySelector('[data-open=admin]').hidden = !moderator;
+  document.querySelector('[data-opportunity="Opere solidali"]').hidden = !moderator;
   document.querySelector('[data-publish]').textContent = member ? 'Pubblica' : 'Iscriviti e pubblica';
   byId('sign-out').hidden = !member;
 }
@@ -197,6 +201,15 @@ function renderRecent() {
     return card;
   }));
 }
+function renderCulture() {
+  const cards = posts.filter(post => post.type === 'Opere solidali').slice(0,4).map(post => {
+    const card = el('article','','card');
+    const open = button('Scopri il progetto',() => openPost(post));
+    card.append(el('h3',post.title),el('p',post.city,'meta'),open);
+    return card;
+  });
+  byId('culture-posts').replaceChildren(...cards);
+}
 function sharePost(post, card) {
   const url = new URL('/#network',location.origin);
   url.searchParams.set('post',post.id);
@@ -286,6 +299,13 @@ function commentSection(post) {
   section.append(form);
   return section;
 }
+function cultureLink(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:') return url.href;
+  } catch {}
+  return '';
+}
 function renderFeed() {
   const city = byId('territory').value.trim().toLocaleLowerCase('it');
   const matches = posts.filter(post => {
@@ -302,7 +322,19 @@ function renderFeed() {
     card.id = 'post-' + post.id;
     card.tabIndex = -1;
     card.append(el('div', post.type + (post.sample ? ' · Esempio' : ''), 'tag'), el('h3', post.title),
-      el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
+      el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'));
+    const lines = post.body.split('\n');
+    const lastLine = lines.at(-1);
+    const projectUrl = post.type === 'Opere solidali' && lastLine.startsWith(cultureLinkLabel) ?
+      cultureLink(lastLine.slice(cultureLinkLabel.length)) : '';
+    card.append(el('p',projectUrl ? lines.slice(0,-1).join('\n').trimEnd() : post.body));
+    if (projectUrl) {
+      const project = el('a','Vai al progetto o all’acquisto','contact');
+      project.href = projectUrl;
+      project.target = '_blank';
+      project.rel = 'noopener noreferrer';
+      card.append(project);
+    }
     if (post.resolution) {
       const result = el('div','','post-resolution');
       result.append(el('strong','Aiuto ricevuto'));
@@ -411,12 +443,15 @@ function setupComposer(form, preferredType) {
     form.elements.body.placeholder = opportunity ? 'Indica quantità, disponibilità o modalità di ritiro.' : '';
     form.elements.date.required = isEvent;
     byId('event-date').hidden = !isEvent && !opportunity;
+    byId('culture-link').hidden = type !== 'Opere solidali';
+    form.elements.culture_url.disabled = type !== 'Opere solidali';
     byId('post-date-label').textContent = isEvent ? 'Data dell’evento' : 'Entro quando (facoltativo)';
     const isExperience = form.elements.type.value === 'Esperienze';
     byId('experience-fields').hidden = !isExperience;
     form.elements.partner.required = isExperience;
     form.elements.outcome.required = isExperience;
   }
+  if (moderator) form.elements.type.append(el('option','Opere solidali'));
   if (preferredType) form.elements.type.value = preferredType;
   updateFields();
   form.elements.type.addEventListener('change', updateFields);
@@ -461,8 +496,12 @@ function setupComposer(form, preferredType) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     submit(form, async () => {
-      const {city,type,title,body,date,partner,outcome} = Object.fromEntries(new FormData(form));
-      const post = {city,type,title,body,owner:networkService.id(),date:(type === 'Eventi' || isOpportunity({type})) ? date || null : null,
+      const {city,type,title,body,date,partner,outcome,culture_url} = Object.fromEntries(new FormData(form));
+      const url = culture_url ? cultureLink(culture_url.trim()) : '';
+      if (culture_url && !url) throw new Error('Inserisci un link che inizi con https://.');
+      const description = url ? body.trimEnd() + '\n\n' + cultureLinkLabel + url : body;
+      if (description.length > 2000) throw new Error('Accorcia la descrizione per lasciare spazio al link.');
+      const post = {city,type,title,body:description,owner:networkService.id(),date:(type === 'Eventi' || isOpportunity({type})) ? date || null : null,
         partner:type === 'Esperienze' ? partner : null,outcome:type === 'Esperienze' ? outcome : null};
       if (pendingFile) {
         post.media = await networkService.upload(pendingFile);
@@ -522,11 +561,28 @@ function openPanel(key, trigger, resume, post) {
     }
     form.elements.kind.value = trigger?.dataset.proposalKind || currentProfile?.kind || 'Azienda';
     if (!form.elements.kind.value) form.elements.kind.value = 'Azienda';
+    const updateProposalText = () => {
+      const culture = form.elements.kind.value === 'Opera solidale';
+      form.querySelector('[data-proposal-message]').textContent = culture ?
+        'Titolo, opera e progetto che vuoi sostenere' : 'Come vuoi collaborare?';
+      form.querySelector('.culture-proposal-fields').hidden = !culture;
+      for (const name of ['beneficiary','support']) {
+        form.elements[name].required = culture;
+        form.elements[name].disabled = !culture;
+      }
+      form.elements.message.maxLength = culture ? 1100 : 1500;
+      form.elements.message.placeholder = culture ?
+        'Indica se è un libro, un’opera o una canzone, chi ne beneficia, in che modo e, se c’è, un link per ascoltarla o vederla.' : '';
+    };
+    updateProposalText();
+    form.elements.kind.addEventListener('change',updateProposalText);
     form.addEventListener('submit',event => {
       event.preventDefault();
       submit(form,async () => {
-        const fields = Object.fromEntries(new FormData(form));
-        await networkService.rest('proposals','',{method:'POST',value:{...fields,owner:networkService.id()}});
+        const {beneficiary,support,message,...fields} = Object.fromEntries(new FormData(form));
+        const description = fields.kind === 'Opera solidale' ?
+          'Beneficiario: ' + beneficiary.trim() + '\nContributo: ' + support.trim() + '\n\n' + message.trim() : message.trim();
+        await networkService.rest('proposals','',{method:'POST',value:{...fields,message:description,owner:networkService.id()}});
         dialog.close();
         notice('Proposta inviata a Pet Carpet.');
       });
@@ -586,7 +642,7 @@ function openPanel(key, trigger, resume, post) {
         google.disabled = true;
         const opportunity = Object.keys(opportunityTypes).find(key => opportunityTypes[key] === trigger?.dataset.opportunity);
         const profile = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.profileKind);
-        const proposal = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.proposalKind);
+        const proposal = Object.keys(proposalKinds).find(key => proposalKinds[key] === trigger?.dataset.proposalKind);
         const destination = proposal ? 'proposta-' + proposal : profile || (
           trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish');
         try { await networkService.googleStart(destination); }
@@ -780,12 +836,12 @@ dialog.addEventListener('close', () => {
   previousFocus?.focus();
 });
 const publishButton = document.querySelector('[data-publish]');
-document.querySelector('[data-company-jump]').addEventListener('click',event => {
+document.querySelectorAll('[data-network-jump]').forEach(link => link.addEventListener('click',event => {
   event.preventDefault();
-  const heading = byId('partecipa-azienda').querySelector('h2');
+  const heading = byId(link.hash.slice(1)).querySelector('h2');
   heading.scrollIntoView({block:'start'});
   heading.focus({preventScroll:true});
-});
+}));
 document.querySelectorAll('[data-publish],[data-opportunity]').forEach(control => {
   control.addEventListener('click', () => openPanel('publish', control));
 });
@@ -814,7 +870,7 @@ byId('sign-out').addEventListener('click', async () => {
   await discovery;
   if (destination) {
     const profileKind = profileKinds[destination];
-    const proposalKind = destination.startsWith('proposta-') ? profileKinds[destination.slice(8)] : undefined;
+    const proposalKind = destination.startsWith('proposta-') ? proposalKinds[destination.slice('proposta-'.length)] : undefined;
     const isProfile = Boolean(profileKind) || destination === 'profile';
     const opportunity = opportunityTypes[destination];
     const trigger = proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :

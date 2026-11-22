@@ -23,7 +23,7 @@
 <h1>Quando ci diamo una zampa, cambia tutto.</h1>
 <p>Il Network di Pet Carpet mette in contatto chi si prende cura degli animali con chi può offrire materiali, tempo o competenze.</p>
 <div class="hero-choices"><button type="button" class="primary" data-opportunity="Cerchiamo">Ho bisogno di aiuto</button><button type="button" data-opportunity="Offriamo">Posso dare una mano</button></div>
-<div class="actions"><button class="primary" data-publish>Iscriviti e pubblica</button><button data-open="profile">Presenta la tua realtà</button><button data-open="invite">Invita una realtà</button><a class="contact" href="#partecipa-azienda" data-company-jump>Partecipa con la tua attività</a></div>
+<div class="actions"><button class="primary" data-publish>Iscriviti e pubblica</button><button data-open="profile">Presenta la tua realtà</button><button data-open="invite">Invita una realtà</button><a class="contact" href="#partecipa-azienda" data-network-jump>Partecipa con la tua attività</a><a class="contact" href="#cultura-solidale" data-network-jump>Cultura solidale</a></div>
 </div>
 </section>
 <section class="network-recent" aria-labelledby="recent-title">
@@ -31,6 +31,12 @@
 <p id="recent-status" role="status">Caricamento delle richieste e delle offerte…</p>
 <div id="recent-opportunities"></div>
 <button type="button" id="recent-search" hidden>Cerca per territorio</button>
+</section>
+<section class="network-recent solidarity-culture" id="cultura-solidale" aria-labelledby="culture-title">
+<h2 id="culture-title" tabindex="-1">Cultura solidale</h2>
+<p>Libri, racconti, opere e canzoni sugli animali possono sostenere un rifugio o un progetto sociale. Presenta la tua opera a Pet Carpet e raccontaci chi potrà beneficiarne e come.</p>
+<div class="actions"><button class="primary" type="button" data-open="proposal" data-proposal-kind="Opera solidale">Proponi un’opera o una canzone</button><button type="button" data-opportunity="Opere solidali" hidden>Pubblica un’opera selezionata</button></div>
+<div id="culture-posts"></div>
 </section>
 <section class="network-display" id="network-display" aria-labelledby="display-title">
 <div class="display-header"><div><p class="eyebrow">DALLE ASSOCIAZIONI</p><h2 id="display-title">Chi cerca, chi offre</h2></div><button type="button" id="display-search">Cerca richieste e offerte</button></div>
@@ -61,7 +67,7 @@
 <section aria-labelledby="feed-title">
 <h2 id="feed-title">La rete in movimento</h2>
 <p class="intro">Scopri chi fa, chi cerca e chi può dare una mano.</p>
-<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button><button aria-pressed="false" data-filter="Esperienze">Esperienze</button><button aria-pressed="false" data-filter="risolti">Aiuti riusciti</button></div>
+<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button><button aria-pressed="false" data-filter="Esperienze">Esperienze</button><button aria-pressed="false" data-filter="risolti">Aiuti riusciti</button><button aria-pressed="false" data-filter="Opere solidali">Opere solidali</button></div>
 <label class="territory">Cerca per territorio <input id="territory" placeholder="Es. Roma" type="search"></label>
 <p id="results" role="status"></p>
 <div id="feed"></div>
@@ -152,6 +158,7 @@
 <label>Con chi hai collaborato <input name="partner" maxlength="100"></label>
 <label>Che cosa avete ottenuto insieme? <textarea name="outcome" maxlength="800"></textarea></label>
 </div>
+<label id="culture-link" hidden>Link al progetto o all’acquisto (facoltativo) <input name="culture_url" type="url" maxlength="300" placeholder="https://"></label>
 <label id="event-date" hidden><span id="post-date-label">Data dell’evento</span><input name="date" type="date"></label>
 <details class="optional-media"><summary>Aggiungi foto, video o vocale (facoltativo)</summary>
 <label>Foto, video o vocale <input id="attachment" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm"></label>
@@ -167,11 +174,12 @@
 <template id="proposal">
 <form>
 <p>Pet Carpet riceve la tua proposta in privato e ti ricontatta per valutare insieme a chi presentarla.</p>
-<label>Tipo di attività <select name="kind"><option>Azienda</option><option>Professionista</option></select></label>
+<label>Tipo di proposta <select name="kind"><option>Azienda</option><option>Professionista</option><option>Opera solidale</option></select></label>
 <label>Nome o ragione sociale <input name="name" maxlength="90" required></label>
 <label>Territorio <input name="city" maxlength="80" required></label>
 <label>Email per ricontattarti <input name="email" type="email" maxlength="150" required></label>
-<label>Come vuoi collaborare? <textarea name="message" maxlength="1500" required></textarea></label>
+<div class="culture-proposal-fields" hidden><label>Associazione o progetto beneficiario <input name="beneficiary" maxlength="130"></label><label>Come contribuisce l’opera? <input name="support" maxlength="200" placeholder="Es. 2 € per ogni copia venduta"></label></div>
+<label><span data-proposal-message>Come vuoi collaborare?</span><textarea name="message" maxlength="1500" required></textarea></label>
 <p class="hint">I recapiti e la proposta restano nella rubrica riservata. <a href="/network/privacy.html">Informativa privacy</a></p>
 <button class="primary" type="submit">Invia a Pet Carpet</button>
 </form>
@@ -181,7 +189,7 @@
 <summary>Gestisci collaborazione</summary>
 <form>
 <div class="pair">
-<label>Stato <select name="status"><option>Nuova</option><option>In valutazione</option><option>Attiva</option><option>Conclusa</option></select></label>
+<label>Stato <select name="status" aria-label="Stato"><option>Nuova</option><option>In valutazione</option><option>Attiva</option><option>Conclusa</option></select></label>
 <label>Prossimo contatto <input name="next_contact" type="date"></label>
 </div>
 <label>Note interne <textarea name="internal_note" maxlength="2000" placeholder="Referente Pet Carpet, realtà coinvolta, accordi presi e prossima azione"></textarea></label>
