@@ -23,7 +23,7 @@ let openedPost;
 const sharedPostId = new URLSearchParams(location.search).get('post');
 const validSharedPost = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sharedPostId);
 const profileKinds = {azienda:'Azienda',professionista:'Professionista'};
-const proposalKinds = {...profileKinds,opera:'Opera solidale'};
+const proposalKinds = {...profileKinds,opera:'Opera solidale',iniziativa:'Iniziativa solidale'};
 const opportunityTypes = {request:'Cerchiamo',offer:'Offriamo'};
 const cultureLinkLabel = 'Link del progetto: ';
 const dateFormat = new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'UTC'});
@@ -73,7 +73,8 @@ async function loadNetwork() {
   renderFeed();
   renderProfiles();
   renderRecent();
-  renderCulture();
+  renderEditorial('Opere solidali','culture-posts');
+  renderEditorial('Iniziative solidali','initiative-posts');
   initDisplay();
 }
 async function submit(form, action) {
@@ -202,22 +203,27 @@ function renderRecent() {
     return card;
   }));
 }
-function renderCulture() {
-  const cards = posts.filter(post => post.type === 'Opere solidali').slice(0,4).map(post => {
+function renderEditorial(type,target) {
+  const cards = posts.filter(post => post.type === type).slice(0,4).map(post => {
     const card = el('article','','card');
     const open = button('Scopri il progetto',() => openPost(post));
     card.append(el('h3',post.title),el('p',post.city,'meta'),open);
     return card;
   });
-  byId('culture-posts').replaceChildren(...cards);
+  byId(target).replaceChildren(...cards);
 }
 function sharePost(post, card) {
   const url = new URL('/#network',location.origin);
   url.searchParams.set('post',post.id);
+  const sourceUrl = source => {
+    const tagged = new URL(url);
+    tagged.searchParams.set('da',source);
+    return tagged.href;
+  };
   const whatsapp = el('a','WhatsApp','contact');
-  whatsapp.href = 'https://wa.me/?text=' + encodeURIComponent(post.title + '\n' + url.href);
+  whatsapp.href = 'https://wa.me/?text=' + encodeURIComponent(post.title + '\n' + sourceUrl('whatsapp'));
   const facebook = el('a','Facebook','contact');
-  facebook.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url.href);
+  facebook.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(sourceUrl('facebook'));
   for (const link of [whatsapp,facebook]) {
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
@@ -226,12 +232,12 @@ function sharePost(post, card) {
   status.setAttribute('role','status');
   const copy = button('Copia link',async () => {
     try {
-      await navigator.clipboard.writeText(url.href);
+      await navigator.clipboard.writeText(sourceUrl('link'));
       status.textContent = 'Link copiato.';
     } catch {
       const field = el('input');
       field.readOnly = true;
-      field.value = url.href;
+      field.value = sourceUrl('link');
       field.setAttribute('aria-label','Link al post');
       status.replaceChildren(field);
       field.focus();
@@ -241,7 +247,7 @@ function sharePost(post, card) {
   const actions = el('div','','post-share');
   if (navigator.share) {
     actions.append(button('Condividi con un’app', async () => {
-      try { await navigator.share({title:post.title,url:url.href}); }
+      try { await navigator.share({title:post.title,url:sourceUrl('share')}); }
       catch (error) {
         if (error.name !== 'AbortError') status.textContent = 'Puoi condividere il post usando Copia link.';
       }
@@ -334,7 +340,7 @@ function renderFeed() {
       el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'));
     const lines = post.body.split('\n');
     const lastLine = lines.at(-1);
-    const projectUrl = post.type === 'Opere solidali' && lastLine.startsWith(cultureLinkLabel) ?
+    const projectUrl = ['Opere solidali','Iniziative solidali'].includes(post.type) && lastLine.startsWith(cultureLinkLabel) ?
       cultureLink(lastLine.slice(cultureLinkLabel.length)) : '';
     card.append(el('p',projectUrl ? lines.slice(0,-1).join('\n').trimEnd() : post.body));
     if (projectUrl) {
@@ -420,7 +426,7 @@ function cleanupMedia() {
   previewUrl = undefined;
   pendingFile = undefined;
 }
-function setupComposer(form, preferredType) {
+function setupComposer(form, preferredType, approvedProposal) {
   byId('publishing-as').textContent = 'Pubblicherai come ' + member;
   const file = byId('attachment');
   const record = byId('record');
@@ -458,8 +464,8 @@ function setupComposer(form, preferredType) {
     form.elements.body.placeholder = opportunity ? 'Indica quantità, disponibilità o modalità di ritiro.' : '';
     form.elements.date.required = isEvent;
     byId('event-date').hidden = !isEvent && !opportunity;
-    byId('culture-link').hidden = type !== 'Opere solidali';
-    form.elements.culture_url.disabled = type !== 'Opere solidali';
+    byId('culture-link').hidden = !['Opere solidali','Iniziative solidali'].includes(type);
+    form.elements.culture_url.disabled = byId('culture-link').hidden;
     byId('post-date-label').textContent = isEvent ? 'Data dell’evento' : 'Entro quando (facoltativo)';
     const isExperience = form.elements.type.value === 'Esperienze';
     byId('experience-fields').hidden = !isExperience;
@@ -467,6 +473,11 @@ function setupComposer(form, preferredType) {
     form.elements.outcome.required = isExperience;
   }
   if (moderator) form.elements.type.append(el('option','Opere solidali'));
+  if (approvedProposal) {
+    form.elements.type.append(el('option','Iniziative solidali'));
+    form.elements.city.value = approvedProposal.city;
+    form.elements.type.disabled = true;
+  }
   if (preferredType) form.elements.type.value = preferredType;
   updateFields();
   form.elements.type.addEventListener('change', updateFields);
@@ -511,13 +522,15 @@ function setupComposer(form, preferredType) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     submit(form, async () => {
-      const {city,type,title,body,date,partner,outcome,culture_url} = Object.fromEntries(new FormData(form));
+      const {city,title,body,date,partner,outcome,culture_url} = Object.fromEntries(new FormData(form));
+      const type = form.elements.type.value;
       const url = culture_url ? cultureLink(culture_url.trim()) : '';
       if (culture_url && !url) throw new Error('Inserisci un link che inizi con https://.');
       const description = url ? body.trimEnd() + '\n\n' + cultureLinkLabel + url : body;
       if (description.length > 2000) throw new Error('Accorcia la descrizione per lasciare spazio al link.');
       const post = {city,type,title,body:description,owner:networkService.id(),date:(type === 'Eventi' || isOpportunity({type})) ? date || null : null,
         partner:type === 'Esperienze' ? partner : null,outcome:type === 'Esperienze' ? outcome : null};
+      if (approvedProposal) post.approved_proposal_id = approvedProposal.id;
       if (pendingFile) {
         post.media = await networkService.upload(pendingFile);
         post.media_type = pendingFile.type.split(';')[0];
@@ -564,6 +577,80 @@ function setupInvite() {
     }
   });
 }
+const reportMetrics = {
+  openings:'Aperture del Network',members:'Iscritti',requests:'Richieste',offers:'Offerte',resolved:'Aiuti ricevuti',
+  proposals:'Proposte di collaborazione e iniziative',culture_proposals:'Proposte culturali',culture_published:'Opere pubblicate'
+};
+const reportChannels = {diretto:'Diretto o non attribuito',whatsapp:'WhatsApp',facebook:'Facebook',instagram:'Instagram',
+  qr:'QR code',link:'Link copiato',share:'Condivisione dal dispositivo',invito:'Inviti alla rete'};
+function setupReport() {
+  const section = byId('report').content.cloneNode(true).querySelector('section');
+  const selector = section.querySelector('select');
+  const status = section.querySelector('[data-report-status]');
+  const output = section.querySelector('[data-report-contents]');
+  const download = section.querySelector('[data-report-export]');
+  for (let week = 0; week < 12; week++) {
+    const option = el('option',week === 0 ? 'Settimana in corso' : week === 1 ? 'Ultima settimana completa' : week + ' settimane fa');
+    option.value = week;
+    selector.append(option);
+  }
+  let report;
+  let generation = 0;
+  async function refresh() {
+    const version = ++generation;
+    status.textContent = 'Caricamento del report…';
+    output.replaceChildren();
+    download.hidden = true;
+    try {
+      const data = await networkService.rpc('weekly_report',{weeks_ago:Number(selector.value)});
+      if (version !== generation || !section.isConnected) return;
+      report = data;
+      const from = dateFormat.format(new Date(data.from));
+      const to = dateFormat.format(new Date(data.to));
+      const table = el('table');
+      const head = table.createTHead().insertRow();
+      for (const label of ['Indicatore','Settimana','Totale']) {
+        const heading = el('th',label);
+        heading.scope = 'col';
+        head.append(heading);
+      }
+      const rows = table.createTBody();
+      const noTracking = !data.tracking_from || data.to < data.tracking_from;
+      for (const [key,label] of Object.entries(reportMetrics)) {
+        const row = rows.insertRow();
+        row.append(el('td',label),el('td',key === 'openings' && noTracking ? '–' : String(data.week[key])),
+          el('td',String(data.total[key])));
+      }
+      const summary = el('p','Collaborazioni attive oggi ' + data.active_partnerships + ' · Contatti da seguire entro 7 giorni ' + data.next_contacts);
+      const sources = el('ul','','report-channels');
+      for (const [key,value] of Object.entries(data.channels).sort((a,b) => b[1]-a[1])) {
+        sources.append(el('li',(reportChannels[key] || key) + ' · ' + value));
+      }
+      output.append(el('h4',from + ' – ' + to),table,summary);
+      if (sources.childElementCount) output.append(el('h4','Da dove arrivano le aperture'),sources);
+      const note = 'Le aperture sono conteggi aggregati di pagina. Una persona può generare più aperture.';
+      output.append(el('p',data.tracking_from ? note + ' Dati dal ' + dateFormat.format(new Date(data.tracking_from)) + '.' :
+        'I dati sulle aperture compariranno con le prime visite rilevate.', 'hint'));
+      status.textContent = '';
+      download.hidden = false;
+    } catch {
+      if (version === generation) status.textContent = 'Report non disponibile. Cambia settimana o riapri la rubrica per riprovare.';
+    }
+  }
+  selector.addEventListener('change',refresh);
+  download.addEventListener('click',() => {
+    const csv = ['Indicatore;Settimana;Totale',...Object.entries(reportMetrics).map(([key,label]) =>
+      [label,key === 'openings' && (!report.tracking_from || report.to < report.tracking_from) ? '' : report.week[key],report.total[key]].join(';'))];
+    const url = URL.createObjectURL(new Blob(['\uFEFF',csv.join('\n')],{type:'text/csv;charset=utf-8;'}));
+    const file = el('a');
+    file.href = url;
+    file.download = 'VPET-report-' + report.from + '.csv';
+    file.click();
+    setTimeout(() => URL.revokeObjectURL(url),1000);
+  });
+  queueMicrotask(refresh);
+  return section;
+}
 function openPanel(key, trigger, resume, post) {
   previousFocus = trigger;
   const currentProfile = profiles.find(item => item.owner === networkService.id());
@@ -585,17 +672,23 @@ function openPanel(key, trigger, resume, post) {
     form.elements.kind.value = trigger?.dataset.proposalKind || currentProfile?.kind || 'Azienda';
     if (!form.elements.kind.value) form.elements.kind.value = 'Azienda';
     const updateProposalText = () => {
-      const culture = form.elements.kind.value === 'Opera solidale';
-      form.querySelector('[data-proposal-message]').textContent = culture ?
-        'Titolo, opera e progetto che vuoi sostenere' : 'Come vuoi collaborare?';
-      form.querySelector('.culture-proposal-fields').hidden = !culture;
+      const kind = form.elements.kind.value;
+      const culture = kind === 'Opera solidale';
+      const initiative = kind === 'Iniziativa solidale';
+      const socialPurpose = culture || initiative;
+      form.querySelector('[data-proposal-message]').textContent = initiative ? 'Descrivi l’iniziativa e come verranno destinati i fondi' :
+        culture ? 'Titolo, opera e progetto che vuoi sostenere' : 'Come vuoi collaborare?';
+      form.querySelector('.culture-proposal-fields').hidden = !socialPurpose;
       for (const name of ['beneficiary','support']) {
-        form.elements[name].required = culture;
-        form.elements[name].disabled = !culture;
+        form.elements[name].required = socialPurpose;
+        form.elements[name].disabled = !socialPurpose;
       }
-      form.elements.message.maxLength = culture ? 1100 : 1500;
-      form.elements.message.placeholder = culture ?
-        'Indica se è un libro, un’opera o una canzone, chi ne beneficia, in che modo e, se c’è, un link per ascoltarla o vederla.' : '';
+      form.elements.message.maxLength = socialPurpose ? 1100 : 1500;
+      form.elements.message.placeholder = initiative ? 'Indica chi organizza, obiettivo, modalità di raccolta e un link di riferimento se disponibile.' :
+        culture ? 'Descrivi l’opera e aggiungi un link per vederla o ascoltarla, se disponibile.' : '';
+      if (culture && trigger?.hasAttribute('data-photography')) {
+        form.elements.message.placeholder = 'Descrivi il servizio fotografico, la mostra o le stampe e come si potrà partecipare.';
+      }
     };
     updateProposalText();
     form.elements.kind.addEventListener('change',updateProposalText);
@@ -603,7 +696,7 @@ function openPanel(key, trigger, resume, post) {
       event.preventDefault();
       submit(form,async () => {
         const {beneficiary,support,message,...fields} = Object.fromEntries(new FormData(form));
-        const description = fields.kind === 'Opera solidale' ?
+        const description = ['Opera solidale','Iniziativa solidale'].includes(fields.kind) ?
           'Beneficiario: ' + beneficiary.trim() + '\nContributo: ' + support.trim() + '\n\n' + message.trim() : message.trim();
         await networkService.rest('proposals','',{method:'POST',value:{...fields,message:description,owner:networkService.id()}});
         dialog.close();
@@ -641,7 +734,7 @@ function openPanel(key, trigger, resume, post) {
       control.hidden = true;
     });
   }
-  if (key === 'publish') setupComposer(body.querySelector('form'), trigger?.dataset.opportunity);
+  if (key === 'publish') setupComposer(body.querySelector('form'), post?.kind === 'Iniziativa solidale' ? 'Iniziative solidali' : trigger?.dataset.opportunity,post);
   if (key === 'invite') setupInvite();
   if (key === 'google-profile') {
     const form = body.querySelector('form');
@@ -665,7 +758,7 @@ function openPanel(key, trigger, resume, post) {
         google.disabled = true;
         const opportunity = Object.keys(opportunityTypes).find(key => opportunityTypes[key] === trigger?.dataset.opportunity);
         const profile = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.profileKind);
-        const proposal = Object.keys(proposalKinds).find(key => proposalKinds[key] === trigger?.dataset.proposalKind);
+        const proposal = trigger?.hasAttribute('data-photography') ? 'foto' : Object.keys(proposalKinds).find(key => proposalKinds[key] === trigger?.dataset.proposalKind);
         const destination = trigger?.hasAttribute('data-join-network') ? 'join-network' : proposal ? 'proposta-' + proposal : profile || (
           trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish');
         try { await networkService.googleStart(destination); }
@@ -744,7 +837,7 @@ function openPanel(key, trigger, resume, post) {
     const loading = el('p','Caricamento delle proposte…','hint');
     loading.setAttribute('role','status');
     inbox.append(el('h3','Proposte di collaborazione'),loading,proposalList);
-    body.append(inbox,el('p','Recapiti delle realtà e moderazione dei contenuti.'));
+    body.append(setupReport(),inbox,el('p','Recapiti delle realtà e moderazione dei contenuti.'));
     networkService.rest('proposals','?select=*,network_proposal_followups(status,next_contact,internal_note)&order=created_at.desc&limit=100').then(rows => {
       if (!inbox.isConnected) return;
       loading.textContent = rows.length ? '' : 'Nessuna proposta ricevuta.';
@@ -757,6 +850,12 @@ function openPanel(key, trigger, resume, post) {
         const form = followup.querySelector('form');
         const status = form.querySelector('[data-form-status]');
         const saved = row.network_proposal_followups;
+        const publishInitiative = button('Pubblica l’iniziativa autorizzata',event => openPanel('publish',event.currentTarget,undefined,row));
+        const alreadyPublished = posts.some(post => post.approved_proposal_id === row.id);
+        function updateInitiativePublication(state) {
+          publishInitiative.hidden = row.kind !== 'Iniziativa solidale' || alreadyPublished || !['Autorizzata','Attiva'].includes(state);
+        }
+        updateInitiativePublication(saved?.status);
         for (const field of ['status','next_contact','internal_note']) {
           if (saved?.[field]) form.elements[field].value = saved[field];
         }
@@ -773,11 +872,12 @@ function openPanel(key, trigger, resume, post) {
             await networkService.put('proposal_followups',{proposal_id:row.id,status:state,next_contact:next_contact || null,
               internal_note:internal_note.trim()});
             updateSummary();
+            updateInitiativePublication(state);
             status.textContent = 'Aggiornamento salvato.';
           });
         });
         proposal.append(el('h4',row.name),el('p',row.kind + ' · ' + row.city,'meta'),
-          el('p',row.message),reply,followup);
+          el('p',row.message),reply,followup,publishInitiative);
         proposalList.append(proposal);
       }
     }).catch(() => {
@@ -882,6 +982,18 @@ document.querySelectorAll('[data-publish],[data-opportunity]').forEach(control =
 });
 renderFeed();
 renderProfiles();
+const networkHost = publishButton.getRootNode().host;
+const viewQuery = new URLSearchParams(location.search);
+let openingRecorded = false;
+function recordOpening() {
+  if (openingRecorded || document.hidden || networkHost?.hidden) return;
+  openingRecorded = true;
+  const source = viewQuery.get('da') || (viewQuery.has('iscriviti') ? 'invito' : 'diretto');
+  networkService.rpc('record_opening',{source}).catch(() => {});
+}
+if (networkHost) new MutationObserver(recordOpening).observe(networkHost,{attributeFilter:['hidden']});
+document.addEventListener('visibilitychange',recordOpening);
+recordOpening();
 byId('sign-out').addEventListener('click', async () => {
   await networkService.logout().catch(() => {});
   location.reload();
@@ -905,10 +1017,12 @@ byId('sign-out').addEventListener('click', async () => {
   await discovery;
   if (destination) {
     const profileKind = profileKinds[destination];
-    const proposalKind = destination.startsWith('proposta-') ? proposalKinds[destination.slice('proposta-'.length)] : undefined;
+    const photoProposal = destination === 'proposta-foto';
+    const proposalKind = photoProposal ? 'Opera solidale' :
+      destination.startsWith('proposta-') ? proposalKinds[destination.slice('proposta-'.length)] : undefined;
     const isProfile = Boolean(profileKind) || destination === 'profile';
     const opportunity = opportunityTypes[destination];
-    const trigger = destination === 'join-network' ? joinButton : proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :
+    const trigger = destination === 'join-network' ? joinButton : photoProposal ? document.querySelector('[data-photography]') : proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :
       opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
       profileKind ? document.querySelector('[data-profile-kind="' + profileKind + '"]') :
       isProfile ? document.querySelector('[data-open=profile]') : publishButton;
