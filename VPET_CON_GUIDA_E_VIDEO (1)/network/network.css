@@ -48,3 +48,10 @@ footer>div{margin-right:auto}
 .install-steps details{border-top:1px solid var(--line);padding:.6rem 0}
 .install-steps summary{cursor:pointer;min-height:44px;display:list-item;padding:.55rem 0;font-weight:700}
 @media(max-width:390px){.bar{gap:.4rem;padding-inline:.55rem}.bar nav{gap:.45rem}.bar nav button{padding-inline:.55rem}.brand{font-size:1.07rem}}
+.network-display{max-width:1120px;margin:2rem auto 0;padding:clamp(1rem,3vw,2rem);border:1px solid var(--line);border-radius:20px;background:#e4ebe2}
+.display-header,.display-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem}
+.display-header .eyebrow{margin:0}.display-controls{justify-content:flex-start;margin-top:.75rem}
+#display-card{margin-top:.9rem;background:white;border-radius:14px;min-height:13rem;padding:1rem;overflow-wrap:anywhere}
+#display-card .tag,.display-meta{margin:.25rem 0}.display-meta{font-weight:700}.display-controls span{color:var(--mute)}
+.card:focus{outline:2px solid var(--green);scroll-margin-top:1rem}
+@media(max-width:1150px){.network-display{margin-inline:1rem}}

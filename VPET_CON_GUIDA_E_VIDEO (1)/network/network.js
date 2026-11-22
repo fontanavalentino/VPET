@@ -14,6 +14,13 @@ let previewUrl;
 let previousFocus;
 let member;
 let moderator = false;
+let displayPosts = [];
+let displayIndex = 0;
+let displayTimer;
+let displayPaused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let openedPost;
+const isOpportunity = post => ['Cerchiamo','Offriamo'].includes(post.type);
+
 let installPrompt;
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
@@ -52,6 +59,7 @@ async function loadNetwork() {
   for (const row of newNotes) if (byPost.has(row.post_id)) notes.set(byPost.get(row.post_id), row.message);
   renderFeed();
   renderProfiles();
+  initDisplay();
 }
 async function submit(form, action) {
   const control = form.querySelector('[type=submit]');
@@ -103,6 +111,62 @@ function attachment(file, url) {
     if (kind === 'video') node.playsInline = true;
   }
   return node;
+}
+function initDisplay() {
+  const associations = new Map(profiles.filter(profile => profile.kind === 'Associazione').map(profile => [profile.owner, profile]));
+  displayPosts = posts.filter(post => isOpportunity(post) && associations.has(post.owner)).map(post => ({
+    post, association:associations.get(post.owner)
+  }));
+  for (let i = displayPosts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [displayPosts[i], displayPosts[j]] = [displayPosts[j], displayPosts[i]];
+  }
+  displayIndex = 0;
+  renderDisplay();
+  scheduleDisplay();
+}
+function scheduleDisplay() {
+  clearTimeout(displayTimer);
+  const display = byId('network-display');
+  if (displayPaused || document.hidden || display.matches(':hover') || display.contains(document.activeElement) || displayPosts.length < 2) return;
+  displayTimer = setTimeout(() => moveDisplay(1),10000);
+}
+function moveDisplay(delta) {
+  if (!displayPosts.length) return;
+  displayIndex = (displayIndex + delta + displayPosts.length) % displayPosts.length;
+  renderDisplay();
+  scheduleDisplay();
+}
+function renderDisplay() {
+  const target = byId('display-card');
+  const {post, association} = displayPosts[displayIndex] || {};
+  byId('display-controls').hidden = displayPosts.length < 2;
+  if (!post) {
+    target.replaceChildren(el('p','Le richieste e le offerte delle associazioni appariranno qui.'));
+    return;
+  }
+  const text = post.body.trim().replace(/\s+/g,' ');
+  const summary = text.length > 170 ? text.slice(0,170).replace(/\s+\S*$/,'') + '…' : text;
+  const open = button('Leggi il messaggio', () => {
+    openedPost = post.id;
+    filter = post.type;
+    byId('territory').value = '';
+    updateFilters();
+    renderFeed();
+    const detail = byId('post-' + post.id);
+    detail?.focus();
+    detail?.scrollIntoView({block:'start'});
+  });
+  open.classList.add('primary');
+  target.replaceChildren(el('p', association.name + ' · ' + post.city, 'display-meta'),
+    el('p',post.type,'tag'),el('h3',post.title),el('p',summary),open);
+  byId('display-position').textContent = (displayIndex + 1) + ' di ' + displayPosts.length;
+  const pause = byId('display-pause');
+  pause.textContent = displayPaused ? 'Riprendi' : 'Pausa';
+  pause.setAttribute('aria-pressed',String(displayPaused));
+}
+function updateFilters() {
+  document.querySelectorAll('[data-filter]').forEach(control => control.setAttribute('aria-pressed', String(control.dataset.filter === filter)));
 }
 function commentSection(post) {
   const section = el('details', '', 'comments');
@@ -159,13 +223,24 @@ function commentSection(post) {
 }
 function renderFeed() {
   const city = byId('territory').value.trim().toLocaleLowerCase('it');
-  const matches = posts.filter(post => (!filter || post.type === filter) && post.city.toLocaleLowerCase('it').includes(city));
+  const matches = posts.filter(post => {
+    const categoryMatches = filter === 'opportunità' ? isOpportunity(post) :
+      filter ? post.type === filter : city || !isOpportunity(post);
+    return (!openedPost || post.id === openedPost) && categoryMatches && post.city.toLocaleLowerCase('it').includes(city);
+  });
   byId('results').textContent = matches.length ? matches.length + (matches.length === 1 ? ' post' : ' post trovati') : 'Non ci sono ancora post per questa ricerca.';
   byId('feed').replaceChildren(...matches.map(post => {
     const card = el('article', '', 'card');
     card.dataset.post = String(posts.indexOf(post));
+    card.id = 'post-' + post.id;
+    card.tabIndex = -1;
     card.append(el('div', post.type + (post.sample ? ' · Esempio' : ''), 'tag'), el('h3', post.title),
       el('div', [post.author, post.city, post.date].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
+    if (openedPost) card.append(button('Torna ai risultati', () => {
+      openedPost = undefined;
+      renderFeed();
+      document.querySelector('[data-filter][aria-pressed=true]')?.focus();
+    }));
     if (post.partner) card.append(el('p', 'In collaborazione con ' + post.partner, 'meta'));
     if (post.outcome) card.append(el('strong', 'Che cosa abbiamo ottenuto'), el('p', post.outcome));
     if (notes.has(post)) card.append(el('p', 'Pet Carpet · ' + notes.get(post)));
@@ -311,9 +386,10 @@ function setupComposer(form) {
         if (post.media) await networkService.removeMedia(post.media).catch(() => {});
         throw error;
       }
-      filter = '';
+      filter = type;
+      openedPost = undefined;
       byId('territory').value = '';
-      document.querySelectorAll('[data-filter]').forEach(item => item.setAttribute('aria-pressed', String(!item.dataset.filter)));
+      updateFilters();
       dialog.close();
       notice('Post pubblicato.');
       await loadNetwork().catch(() => notice('Post salvato. Ricarica per aggiornare il feed.'));
@@ -382,11 +458,11 @@ function openPanel(key, trigger, resume) {
         }
         await loadMember(values.displayName);
         if (!member) throw new Error('Il profilo non è disponibile.');
+        await loadNetwork().catch(() => notice('Aggiornamento del feed non riuscito.'));
         if (resume) {
           dialog.addEventListener('close', resume, {once:true});
           dialog.close();
         } else openPanel('publish', trigger);
-        loadNetwork().catch(() => notice('Aggiornamento del feed non riuscito.'));
       });
     });
   }
@@ -453,10 +529,35 @@ function openPanel(key, trigger, resume) {
 document.querySelectorAll('[data-open]').forEach(item => item.addEventListener('click', () => openPanel(item.dataset.open, item)));
 document.querySelectorAll('[data-filter]').forEach(item => item.addEventListener('click', () => {
   filter = item.dataset.filter;
-  document.querySelectorAll('[data-filter]').forEach(control => control.setAttribute('aria-pressed', String(control === item)));
+  openedPost = undefined;
+  updateFilters();
   renderFeed();
 }));
-byId('territory').addEventListener('input', renderFeed);
+byId('territory').addEventListener('input', () => {
+  openedPost = undefined;
+  renderFeed();
+});
+byId('display-search').addEventListener('click', () => {
+  openedPost = undefined;
+  filter = 'opportunità';
+  updateFilters();
+  renderFeed();
+  byId('territory').focus();
+});
+byId('display-prev').addEventListener('click', () => moveDisplay(-1));
+byId('display-next').addEventListener('click', () => moveDisplay(1));
+byId('display-pause').addEventListener('click', event => {
+  displayPaused = !displayPaused;
+  event.currentTarget.textContent = displayPaused ? 'Riprendi' : 'Pausa';
+  event.currentTarget.setAttribute('aria-pressed',String(displayPaused));
+  scheduleDisplay();
+});
+const display = byId('network-display');
+display.addEventListener('mouseenter', scheduleDisplay);
+display.addEventListener('mouseleave', scheduleDisplay);
+display.addEventListener('focusin', scheduleDisplay);
+display.addEventListener('focusout', () => setTimeout(scheduleDisplay,0));
+document.addEventListener('visibilitychange', scheduleDisplay);
 byId('close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('close', () => {
   cleanupMedia();

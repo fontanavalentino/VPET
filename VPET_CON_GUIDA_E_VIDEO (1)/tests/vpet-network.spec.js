@@ -95,3 +95,33 @@ for (const [age,width,zoom] of profiles) test('VPET Network · scenario ' + age,
   assert.deepEqual(errors,[]);
   await ctx.close();
 });
+
+test('Le offerte ruotano ogni 10 secondi e aprono il post specifico', async ({page}) => {
+  const origin = 'https://enmhknczdgtivjiwszwk.supabase.co';
+  const profile = {owner:'a', name:'Associazione QA', kind:'Associazione', city:'Roma',description:'Aiutiamo gli animali'};
+  const posts = [
+    {id:'1',owner:'a',type:'Cerchiamo',city:'Roma',title:'Cerchiamo volontari',body:'Una mano per la raccolta.',network_members:{name:'Redazione'}},
+    {id:'2',owner:'a',type:'Offriamo',city:'Roma',title:'Offriamo coperte',body:'Coperte per i rifugi.',network_members:{name:'Redazione'}}
+  ];
+  await page.clock.install();
+  await page.route(origin + '/rest/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    return route.fulfill({json:path.endsWith('network_posts') ? posts : path.endsWith('network_profiles') ? [profile] : [],headers:{'Access-Control-Allow-Origin':'*'}});
+  });
+  await page.goto('/network/');
+  const display = page.locator('#network-display');
+  const title = display.getByRole('heading', {level:3});
+  await title.waitFor();
+  const first = await title.textContent();
+  await page.clock.runFor(9000);
+  assert.equal(await title.textContent(),first);
+  await page.clock.runFor(1100);
+  const second = await title.textContent();
+  assert.notEqual(second,first);
+  await display.getByRole('button',{name:'Pausa',exact:true}).click();
+  await page.clock.runFor(12000);
+  assert.equal(await title.textContent(),second);
+  await display.getByRole('button',{name:'Leggi il messaggio'}).click();
+  assert.equal(await page.locator('#feed article').count(),1);
+  assert.equal(await page.locator('#feed article h3').textContent(),second);
+});
