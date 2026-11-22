@@ -147,7 +147,12 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   await network.getByRole('button',{name:'Invita una realtà',exact:true}).first().click();
   assert.equal(new URL(await network.locator('#invite-link').inputValue()).hash,'#network');
   await page.keyboard.press('Escape');
-  await network.getByRole('link',{name:'Servizi VPET',exact:true}).click();
+  const views = page.getByRole('navigation',{name:'Sezioni VPET'});
+  assert.equal(await views.getByRole('link',{name:'Network',exact:true}).getAttribute('aria-current'),'location');
+  assert.equal(await page.locator('#vpet-servizi').isVisible(),false);
+  await views.getByRole('link',{name:'Servizi VPET',exact:true}).click();
+  assert.equal(await network.isVisible(),false);
+  assert.equal(await views.getByRole('link',{name:'Servizi VPET',exact:true}).getAttribute('aria-current'),'location');
   const breeds = page.locator('.wrap,.mobilePhotoDash').getByRole('button',{name:/^Guida alle razze$/i}).filter({visible:true});
   await breeds.click();
   await page.getByRole('heading',{name:'Guida alle Razze',exact:true}).waitFor();
