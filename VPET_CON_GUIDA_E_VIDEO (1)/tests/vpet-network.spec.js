@@ -100,7 +100,7 @@ test('Le offerte ruotano ogni 10 secondi e aprono il post specifico', async ({pa
   const origin = 'https://enmhknczdgtivjiwszwk.supabase.co';
   const profile = {owner:'a', name:'Associazione QA', kind:'Associazione', city:'Roma',description:'Aiutiamo gli animali'};
   const posts = [
-    {id:'1',owner:'a',type:'Cerchiamo',city:'Roma',title:'Cerchiamo volontari',body:'Una mano per la raccolta.',network_members:{name:'Redazione'}},
+    {id:'1',owner:'a',type:'Cerchiamo',city:'Roma',title:'Cerchiamo volontari',date:'2026-12-15',body:'Una mano per la raccolta.',network_members:{name:'Redazione'}},
     {id:'2',owner:'a',type:'Offriamo',city:'Roma',title:'Offriamo coperte',body:'Coperte per i rifugi.',network_members:{name:'Redazione'}}
   ];
   await page.clock.install();
@@ -109,6 +109,10 @@ test('Le offerte ruotano ogni 10 secondi e aprono il post specifico', async ({pa
     return route.fulfill({json:path.endsWith('network_posts') ? posts : path.endsWith('network_profiles') ? [profile] : [],headers:{'Access-Control-Allow-Origin':'*'}});
   });
   await page.goto('/network/');
+  const recent = page.locator('#recent-opportunities');
+  await recent.getByText('Roma · Entro il 15 dicembre 2026').waitFor();
+  await recent.getByRole('button',{name:'Leggi il post: Offriamo coperte'}).click();
+  assert.equal(await page.locator('#feed article h3').textContent(),'Offriamo coperte');
   const display = page.locator('#network-display');
   const title = display.getByRole('heading', {level:3});
   await title.waitFor();
@@ -163,7 +167,7 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   assert.deepEqual(errors,[]);
 });
 
-test('Continua con Google porta al profilo pubblico e al primo post', async ({page}) => {
+test('Continua con Google conserva la scelta di offrire aiuto', async ({page}) => {
   const origin = 'https://enmhknczdgtivjiwszwk.supabase.co';
   const headers = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'};
   let publicName;
@@ -190,7 +194,7 @@ test('Continua con Google porta al profilo pubblico e al primo post', async ({pa
   });
   await page.goto('/');
   await page.getByRole('button',{name:'Entra nel network',exact:true}).click();
-  await page.getByRole('button',{name:'Iscriviti e pubblica',exact:true}).click();
+  await page.getByRole('button',{name:'Posso dare una mano',exact:true}).click();
   await page.getByRole('button',{name:'Continua con Google',exact:true}).click();
   await page.getByRole('heading',{name:'Completa il tuo profilo'}).waitFor();
   assert.equal(publicName,undefined);
@@ -198,6 +202,8 @@ test('Continua con Google porta al profilo pubblico e al primo post', async ({pa
   await page.getByRole('checkbox').check();
   await page.getByRole('button',{name:'Continua',exact:true}).click();
   await page.getByRole('heading',{name:'Pubblica nel network'}).waitFor();
+  assert.equal(await page.getByLabel('Tipo di post').inputValue(),'Offriamo');
+  await page.getByLabel('Entro quando (facoltativo)').fill('2026-12-15');
   assert.equal(publicName,'Utente Google QA');
   assert(!new URL(page.url()).searchParams.has('code'));
 });
