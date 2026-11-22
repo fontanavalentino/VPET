@@ -55,3 +55,10 @@ footer>div{margin-right:auto}
 #display-card .tag,.display-meta{margin:.25rem 0}.display-meta{font-weight:700}.display-controls span{color:var(--mute)}
 .card:focus{outline:2px solid var(--green);scroll-margin-top:1rem}
 @media(max-width:1150px){.network-display{margin-inline:1rem}}
+.bar{height:auto;min-height:70px;flex-wrap:wrap;padding-block:.45rem}
+.bar nav{flex-wrap:wrap;min-width:0}
+button,.contact,summary{overflow-wrap:anywhere;max-width:100%}
+.hero-copy,.layout>*,#feed>*,aside>*{min-width:0}
+form input,form select,form textarea,.territory input{min-width:0}
+@media(max-width:760px){.layout,.actions{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:500px){.actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
