@@ -20,7 +20,12 @@ let displayIndex = 0;
 let displayTimer;
 let displayPaused = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let openedPost;
+const sharedPostId = new URLSearchParams(location.search).get('post');
+const validSharedPost = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(sharedPostId);
+const profileKinds = {azienda:'Azienda',professionista:'Professionista'};
+const proposalKinds = {...profileKinds,opera:'Opera solidale'};
 const opportunityTypes = {request:'Cerchiamo',offer:'Offriamo'};
+const cultureLinkLabel = 'Link del progetto: ';
 const dateFormat = new Intl.DateTimeFormat('it-IT',{dateStyle:'long',timeZone:'UTC'});
 const isOpportunity = post => ['Cerchiamo','Offriamo'].includes(post.type);
 
@@ -40,15 +45,20 @@ function notice(message) {
 }
 
 async function loadNetwork() {
-  const [newPosts, newProfiles, newComments, newNotes, contacts] = await Promise.all([
-    networkService.rest('posts', '?select=*,network_members(name)&order=created_at.desc&limit=150'),
+  const postFields = '?select=*,network_members(name),network_resolutions(thanks,resolved_at)';
+  const [newPosts, newProfiles, newComments, newNotes, contacts, sharedPosts] = await Promise.all([
+    networkService.rest('posts', postFields + '&order=created_at.desc&limit=150'),
     networkService.rest('profiles', '?order=name.asc&limit=500'),
     networkService.rest('comments', '?select=*,network_members(name)&order=created_at.asc&limit=2000'),
     networkService.rest('notes', '?select=*'),
-    networkService.rest('contacts', '?select=*&limit=500')
+    networkService.rest('contacts', '?select=*&limit=500'),
+    validSharedPost ? networkService.rest('posts',postFields + '&id=eq.' + sharedPostId) : []
   ]);
   const contactsByOwner = new Map(contacts.map(row => [row.owner, row]));
-  posts.splice(0, posts.length, ...newPosts.map(row => ({...row, author:row.network_members.name})));
+  const uniquePosts = new Map([...newPosts, ...sharedPosts].map(row => [row.id,row]));
+  posts.splice(0, posts.length, ...Array.from(uniquePosts.values(), row => ({
+    ...row, author:row.network_members.name, resolution:Array.isArray(row.network_resolutions) ? row.network_resolutions[0] : row.network_resolutions
+  })));
   profiles.splice(0, profiles.length, ...newProfiles.map(row => ({...row, ...contactsByOwner.get(row.owner)})));
   comments.clear();
   notes.clear();
@@ -63,6 +73,7 @@ async function loadNetwork() {
   renderFeed();
   renderProfiles();
   renderRecent();
+  renderCulture();
   initDisplay();
 }
 async function submit(form, action) {
@@ -87,8 +98,10 @@ async function loadMember(name) {
   if (member && !rows.length) await networkService.put('members', {id,name:member});
   moderator = staff.length > 0;
   document.querySelector('[data-open=admin]').hidden = !moderator;
+  document.querySelector('[data-opportunity="Opere solidali"]').hidden = !moderator;
   document.querySelector('[data-publish]').textContent = member ? 'Pubblica' : 'Iscriviti e pubblica';
   byId('sign-out').hidden = !member;
+  byId('join-network').hidden = Boolean(member);
 }
 function el(tag, value, className) {
   const node = document.createElement(tag);
@@ -118,7 +131,7 @@ function attachment(file, url) {
 }
 function initDisplay() {
   const associations = new Map(profiles.filter(profile => profile.kind === 'Associazione').map(profile => [profile.owner, profile]));
-  displayPosts = posts.filter(post => isOpportunity(post) && associations.has(post.owner)).map(post => ({
+  displayPosts = posts.filter(post => isOpportunity(post) && !post.resolution && associations.has(post.owner)).map(post => ({
     post, association:associations.get(post.owner)
   }));
   for (let i = displayPosts.length - 1; i > 0; i--) {
@@ -176,7 +189,7 @@ function postDate(post) {
   return isOpportunity(post) ? 'Entro il ' + date : date;
 }
 function renderRecent() {
-  const recent = posts.filter(post => isOpportunity(post) && !post.sample).slice(0,4);
+  const recent = posts.filter(post => isOpportunity(post) && !post.resolution && !post.sample).slice(0,4);
   const status = byId('recent-status');
   status.textContent = recent.length ? '' : 'Le prime richieste e offerte appariranno qui. Puoi pubblicare la tua dai pulsanti qui sopra.';
   byId('recent-search').hidden = !recent.length;
@@ -188,6 +201,56 @@ function renderRecent() {
       el('p',[post.city,postDate(post)].filter(Boolean).join(' · '),'meta'),open);
     return card;
   }));
+}
+function renderCulture() {
+  const cards = posts.filter(post => post.type === 'Opere solidali').slice(0,4).map(post => {
+    const card = el('article','','card');
+    const open = button('Scopri il progetto',() => openPost(post));
+    card.append(el('h3',post.title),el('p',post.city,'meta'),open);
+    return card;
+  });
+  byId('culture-posts').replaceChildren(...cards);
+}
+function sharePost(post, card) {
+  const url = new URL('/#network',location.origin);
+  url.searchParams.set('post',post.id);
+  const whatsapp = el('a','WhatsApp','contact');
+  whatsapp.href = 'https://wa.me/?text=' + encodeURIComponent(post.title + '\n' + url.href);
+  const facebook = el('a','Facebook','contact');
+  facebook.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url.href);
+  for (const link of [whatsapp,facebook]) {
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+  }
+  const status = el('p','','hint');
+  status.setAttribute('role','status');
+  const copy = button('Copia link',async () => {
+    try {
+      await navigator.clipboard.writeText(url.href);
+      status.textContent = 'Link copiato.';
+    } catch {
+      const field = el('input');
+      field.readOnly = true;
+      field.value = url.href;
+      field.setAttribute('aria-label','Link al post');
+      status.replaceChildren(field);
+      field.focus();
+      field.select();
+    }
+  });
+  const actions = el('div','','post-share');
+  if (navigator.share) {
+    actions.append(button('Condividi con un’app', async () => {
+      try { await navigator.share({title:post.title,url:url.href}); }
+      catch (error) {
+        if (error.name !== 'AbortError') status.textContent = 'Puoi condividere il post usando Copia link.';
+      }
+    }));
+  }
+  actions.append(copy,whatsapp,facebook);
+  const details = el('details','','share-details');
+  details.append(el('summary','Condividi il post'),actions,status);
+  card.append(details);
 }
 function updateFilters() {
   document.querySelectorAll('[data-filter]').forEach(control => control.setAttribute('aria-pressed', String(control.dataset.filter === filter)));
@@ -205,7 +268,7 @@ function commentSection(post) {
   if (!member) {
     section.append(button('Iscriviti per commentare', event => openPanel('join', event.currentTarget, () => {
       renderFeed();
-      const sections = byId('feed').querySelectorAll('details');
+      const sections = byId('feed').querySelectorAll('.comments');
       const visiblePosts = Array.from(byId('feed').children);
       const index = visiblePosts.findIndex(card => card.dataset.post === String(posts.indexOf(post)));
       if (sections[index]) {
@@ -245,11 +308,20 @@ function commentSection(post) {
   section.append(form);
   return section;
 }
+function cultureLink(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:') return url.href;
+  } catch {}
+  return '';
+}
 function renderFeed() {
   const city = byId('territory').value.trim().toLocaleLowerCase('it');
   const matches = posts.filter(post => {
-    const categoryMatches = filter === 'opportunità' ? isOpportunity(post) :
+    const categoryMatches = filter === 'risolti' ? Boolean(post.resolution) :
+      filter === 'opportunità' ? isOpportunity(post) :
       filter ? post.type === filter : city || !isOpportunity(post);
+    if (!openedPost && post.resolution && ['opportunità','Cerchiamo'].includes(filter)) return false;
     return (!openedPost || post.id === openedPost) && categoryMatches && post.city.toLocaleLowerCase('it').includes(city);
   });
   byId('results').textContent = matches.length ? matches.length + (matches.length === 1 ? ' post' : ' post trovati') : 'Non ci sono ancora post per questa ricerca.';
@@ -259,7 +331,34 @@ function renderFeed() {
     card.id = 'post-' + post.id;
     card.tabIndex = -1;
     card.append(el('div', post.type + (post.sample ? ' · Esempio' : ''), 'tag'), el('h3', post.title),
-      el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
+      el('div', [post.author, post.city, postDate(post)].filter(Boolean).join(' · '), 'meta'));
+    const lines = post.body.split('\n');
+    const lastLine = lines.at(-1);
+    const projectUrl = post.type === 'Opere solidali' && lastLine.startsWith(cultureLinkLabel) ?
+      cultureLink(lastLine.slice(cultureLinkLabel.length)) : '';
+    card.append(el('p',projectUrl ? lines.slice(0,-1).join('\n').trimEnd() : post.body));
+    if (projectUrl) {
+      const project = el('a','Vai al progetto o all’acquisto','contact');
+      project.href = projectUrl;
+      project.target = '_blank';
+      project.rel = 'noopener noreferrer';
+      card.append(project);
+    }
+    if (post.resolution) {
+      const result = el('div','','post-resolution');
+      result.append(el('strong','Aiuto ricevuto'));
+      if (post.resolution.thanks) result.append(el('p',post.resolution.thanks));
+      card.append(result);
+    } else if (member && post.owner === networkService.id() && post.type === 'Cerchiamo') {
+      card.append(button('Aiuto ricevuto',event => openPanel('resolve',event.currentTarget,undefined,post)));
+    }
+    sharePost(post,card);
+    if (openedPost && !member) {
+      const join = button('Iscriviti e partecipa',event => openPanel('join',event.currentTarget,welcomeNetwork));
+      join.setAttribute('data-join-network','');
+      join.classList.add('primary','shared-post-join');
+      card.append(join);
+    }
     if (openedPost) card.append(button('Torna ai risultati', () => {
       openedPost = undefined;
       renderFeed();
@@ -302,8 +401,9 @@ function appendContacts(parent, profile) {
 function renderProfiles() {
   const directory = byId('directory');
   directory.replaceChildren();
-  if (!profiles.length) directory.append(el('p', 'Presenta la tua realtà per creare la prima scheda.'));
-  for (const profile of profiles) {
+  const publicProfiles = profiles.filter(profile => !Object.values(profileKinds).includes(profile.kind));
+  if (!publicProfiles.length) directory.append(el('p', 'Presenta la tua realtà per creare la prima scheda.'));
+  for (const profile of publicProfiles) {
     const card = el('article');
     card.append(el('h3', profile.name), el('p', profile.kind + ' · ' + profile.city, 'meta'), el('p', profile.description));
     if (profile.visible) appendContacts(card, profile);
@@ -352,14 +452,21 @@ function setupComposer(form, preferredType) {
     const type = form.elements.type.value;
     const isEvent = type === 'Eventi';
     const opportunity = isOpportunity({type});
+    byId('post-title-label').textContent = type === 'Cerchiamo' ? 'Cosa ti serve?' :
+      type === 'Offriamo' ? 'Cosa puoi offrire?' : 'Titolo';
+    byId('post-body-label').textContent = opportunity ? 'Dettagli per organizzarsi' : 'Raccontaci';
+    form.elements.body.placeholder = opportunity ? 'Indica quantità, disponibilità o modalità di ritiro.' : '';
     form.elements.date.required = isEvent;
     byId('event-date').hidden = !isEvent && !opportunity;
+    byId('culture-link').hidden = type !== 'Opere solidali';
+    form.elements.culture_url.disabled = type !== 'Opere solidali';
     byId('post-date-label').textContent = isEvent ? 'Data dell’evento' : 'Entro quando (facoltativo)';
     const isExperience = form.elements.type.value === 'Esperienze';
     byId('experience-fields').hidden = !isExperience;
     form.elements.partner.required = isExperience;
     form.elements.outcome.required = isExperience;
   }
+  if (moderator) form.elements.type.append(el('option','Opere solidali'));
   if (preferredType) form.elements.type.value = preferredType;
   updateFields();
   form.elements.type.addEventListener('change', updateFields);
@@ -404,8 +511,12 @@ function setupComposer(form, preferredType) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     submit(form, async () => {
-      const {city,type,title,body,date,partner,outcome} = Object.fromEntries(new FormData(form));
-      const post = {city,type,title,body,owner:networkService.id(),date:(type === 'Eventi' || isOpportunity({type})) ? date || null : null,
+      const {city,type,title,body,date,partner,outcome,culture_url} = Object.fromEntries(new FormData(form));
+      const url = culture_url ? cultureLink(culture_url.trim()) : '';
+      if (culture_url && !url) throw new Error('Inserisci un link che inizi con https://.');
+      const description = url ? body.trimEnd() + '\n\n' + cultureLinkLabel + url : body;
+      if (description.length > 2000) throw new Error('Accorcia la descrizione per lasciare spazio al link.');
+      const post = {city,type,title,body:description,owner:networkService.id(),date:(type === 'Eventi' || isOpportunity({type})) ? date || null : null,
         partner:type === 'Esperienze' ? partner : null,outcome:type === 'Esperienze' ? outcome : null};
       if (pendingFile) {
         post.media = await networkService.upload(pendingFile);
@@ -432,6 +543,14 @@ function setupInvite() {
   const input = byId('invite-link');
   input.value = url.href;
   const message = 'Ti invito su VPET Network, la comunità di Pet Carpet per chi aiuta gli animali. Iscriviti e raccontaci cosa fai, cosa cerchi o come puoi dare una mano. ' + url.href;
+  if (navigator.share) {
+    byId('copy-invite').after(button('Condividi con un’app', async () => {
+      try { await navigator.share({title:'Un invito a VPET Network',text:message.slice(0,-url.href.length).trim(),url:url.href}); }
+      catch (error) {
+        if (error.name !== 'AbortError') byId('invite-status').textContent = 'Puoi invitare altre persone usando Copia link.';
+      }
+    }));
+  }
   byId('invite-whatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(message);
   byId('invite-email').href = 'mailto:?subject=' + encodeURIComponent('Un invito a VPET Network') + '&body=' + encodeURIComponent(message);
   byId('copy-invite').addEventListener('click', async () => {
@@ -445,15 +564,74 @@ function setupInvite() {
     }
   });
 }
-function openPanel(key, trigger, resume) {
+function openPanel(key, trigger, resume, post) {
   previousFocus = trigger;
-  if (['publish','profile'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
+  const currentProfile = profiles.find(item => item.owner === networkService.id());
+  if (key === 'publish' && Object.values(profileKinds).includes(currentProfile?.kind)) {
+    return openPanel('proposal',trigger);
+  }
+  if (['publish','profile','proposal'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
   if (key === 'admin' && !moderator) return;
-  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind === 'Azienda' ? 'Presenta la tua azienda' : trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',resolve:'Aiuto ricevuto',proposal:'Proponi una collaborazione a Pet Carpet',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione Pet Carpet'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
   if (template) body.append(template.content.cloneNode(true));
+  if (key === 'proposal') {
+    const form = body.querySelector('form');
+    if (currentProfile) {
+      for (const field of ['name','city','email']) form.elements[field].value = currentProfile[field] || '';
+    }
+    form.elements.kind.value = trigger?.dataset.proposalKind || currentProfile?.kind || 'Azienda';
+    if (!form.elements.kind.value) form.elements.kind.value = 'Azienda';
+    const updateProposalText = () => {
+      const culture = form.elements.kind.value === 'Opera solidale';
+      form.querySelector('[data-proposal-message]').textContent = culture ?
+        'Titolo, opera e progetto che vuoi sostenere' : 'Come vuoi collaborare?';
+      form.querySelector('.culture-proposal-fields').hidden = !culture;
+      for (const name of ['beneficiary','support']) {
+        form.elements[name].required = culture;
+        form.elements[name].disabled = !culture;
+      }
+      form.elements.message.maxLength = culture ? 1100 : 1500;
+      form.elements.message.placeholder = culture ?
+        'Indica se è un libro, un’opera o una canzone, chi ne beneficia, in che modo e, se c’è, un link per ascoltarla o vederla.' : '';
+    };
+    updateProposalText();
+    form.elements.kind.addEventListener('change',updateProposalText);
+    form.addEventListener('submit',event => {
+      event.preventDefault();
+      submit(form,async () => {
+        const {beneficiary,support,message,...fields} = Object.fromEntries(new FormData(form));
+        const description = fields.kind === 'Opera solidale' ?
+          'Beneficiario: ' + beneficiary.trim() + '\nContributo: ' + support.trim() + '\n\n' + message.trim() : message.trim();
+        await networkService.rest('proposals','',{method:'POST',value:{...fields,message:description,owner:networkService.id()}});
+        dialog.close();
+        notice('Proposta inviata a Pet Carpet.');
+      });
+    });
+  }
+  if (key === 'resolve') {
+    const form = body.querySelector('form');
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      submit(form,async () => {
+        const thanks = form.elements.thanks.value.trim();
+        await networkService.rest('resolutions','',{method:'POST',value:{post_id:post.id,thanks},
+          prefer:'resolution=ignore-duplicates,return=minimal'});
+        dialog.close();
+        notice('Aiuto ricevuto. La richiesta è tra gli Aiuti riusciti.');
+        filter = 'risolti';
+        openedPost = undefined;
+        byId('territory').value = '';
+        updateFilters();
+        await loadNetwork().catch(() => notice('Esito salvato. Ricarica per aggiornare il Network.'));
+        const result = byId('post-' + post.id);
+        result?.scrollIntoView({block:'start'});
+        result?.focus({preventScroll:true});
+      });
+    });
+  }
   if (key === 'install' && installPrompt) {
     const control = byId('install-app');
     control.hidden = false;
@@ -486,8 +664,10 @@ function openPanel(key, trigger, resume) {
       google.addEventListener('click', async () => {
         google.disabled = true;
         const opportunity = Object.keys(opportunityTypes).find(key => opportunityTypes[key] === trigger?.dataset.opportunity);
-        const destination = trigger?.dataset.profileKind ? 'professionista' :
-          trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish';
+        const profile = Object.keys(profileKinds).find(key => profileKinds[key] === trigger?.dataset.profileKind);
+        const proposal = Object.keys(proposalKinds).find(key => proposalKinds[key] === trigger?.dataset.proposalKind);
+        const destination = trigger?.hasAttribute('data-join-network') ? 'join-network' : proposal ? 'proposta-' + proposal : profile || (
+          trigger?.dataset.open === 'profile' ? 'profile' : opportunity || 'publish');
         try { await networkService.googleStart(destination); }
         catch {
           form.querySelector('[data-form-status]').textContent = 'Non riesco ad aprire Google. Riprova o continua con email.';
@@ -530,6 +710,16 @@ function openPanel(key, trigger, resume) {
     if (profile) for (const field of ['name','kind','city','description','phone','whatsapp','email']) form.elements[field].value = profile[field] || '';
     form.elements.kind.value = trigger?.dataset.profileKind || profile?.kind || 'Associazione';
     form.elements.public.checked = Boolean(profile?.visible);
+    const updateContactPrivacy = () => {
+      const isPrivate = Object.values(profileKinds).includes(form.elements.kind.value);
+      form.elements.public.disabled = isPrivate;
+      form.elements.public.closest('label').hidden = isPrivate;
+      form.querySelector('[data-profile-privacy]').textContent = isPrivate ?
+        'I dati di aziende e professionisti restano nella rubrica riservata di Pet Carpet.' :
+        'I recapiti sono accessibili alla redazione di Pet Carpet e appaiono nella scheda solo se scegli di mostrarli.';
+    };
+    updateContactPrivacy();
+    form.elements.kind.addEventListener('change',updateContactPrivacy);
     form.addEventListener('submit', event => {
       event.preventDefault();
       submit(form, async () => {
@@ -549,7 +739,50 @@ function openPanel(key, trigger, resume) {
     body.append(link);
   }
   if (key === 'admin') {
-    body.append(el('p','Recapiti delle realtà e moderazione dei contenuti.'));
+    const inbox = el('section','','proposal-inbox');
+    const proposalList = el('div','','proposal-list');
+    const loading = el('p','Caricamento delle proposte…','hint');
+    loading.setAttribute('role','status');
+    inbox.append(el('h3','Proposte di collaborazione'),loading,proposalList);
+    body.append(inbox,el('p','Recapiti delle realtà e moderazione dei contenuti.'));
+    networkService.rest('proposals','?select=*,network_proposal_followups(status,next_contact,internal_note)&order=created_at.desc&limit=100').then(rows => {
+      if (!inbox.isConnected) return;
+      loading.textContent = rows.length ? '' : 'Nessuna proposta ricevuta.';
+      for (const row of rows) {
+        const proposal = el('article','','card');
+        const reply = el('a','Rispondi via email','contact');
+        reply.href = 'mailto:' + encodeURIComponent(row.email) + '?subject=' + encodeURIComponent('Proposta di collaborazione · Pet Carpet');
+        const followup = byId('followup').content.cloneNode(true);
+        const summary = followup.querySelector('summary');
+        const form = followup.querySelector('form');
+        const status = form.querySelector('[data-form-status]');
+        const saved = row.network_proposal_followups;
+        for (const field of ['status','next_contact','internal_note']) {
+          if (saved?.[field]) form.elements[field].value = saved[field];
+        }
+        const updateSummary = () => {
+          const date = form.elements.next_contact.value;
+          summary.textContent = form.elements.status.value + (date ?
+            ' · Prossimo contatto il ' + dateFormat.format(new Date(date)) : ' · Gestisci collaborazione');
+        };
+        updateSummary();
+        form.addEventListener('submit',event => {
+          event.preventDefault();
+          submit(form,async () => {
+            const {status:state,next_contact,internal_note} = Object.fromEntries(new FormData(form));
+            await networkService.put('proposal_followups',{proposal_id:row.id,status:state,next_contact:next_contact || null,
+              internal_note:internal_note.trim()});
+            updateSummary();
+            status.textContent = 'Aggiornamento salvato.';
+          });
+        });
+        proposal.append(el('h4',row.name),el('p',row.kind + ' · ' + row.city,'meta'),
+          el('p',row.message),reply,followup);
+        proposalList.append(proposal);
+      }
+    }).catch(() => {
+      if (inbox.isConnected) loading.textContent = 'Le proposte non sono disponibili. Riapri la rubrica per riprovare.';
+    });
     for (const profile of profiles) {
       const card = el('article', '', 'card');
       card.append(el('h3', profile.name), el('p', profile.kind + ' · ' + profile.city, 'meta'));
@@ -626,6 +859,24 @@ dialog.addEventListener('close', () => {
   previousFocus?.focus();
 });
 const publishButton = document.querySelector('[data-publish]');
+const joinButton = byId('join-network');
+function welcomeNetwork() {
+  const url = new URL(location.href);
+  url.searchParams.delete('iscriviti');
+  if (publishButton.getRootNode() !== document) url.hash = 'network';
+  history.replaceState(null,'',url.pathname + url.search + url.hash);
+  if (dialog.open) dialog.close();
+  notice('Ora fai parte della rete. Puoi pubblicare, commentare e invitare chi può aiutare.');
+  const status = byId('network-status');
+  status.scrollIntoView({block:'center'});
+}
+joinButton.addEventListener('click',() => openPanel('join',joinButton,welcomeNetwork));
+document.querySelectorAll('[data-network-jump]').forEach(link => link.addEventListener('click',event => {
+  event.preventDefault();
+  const heading = byId(link.hash.slice(1)).querySelector('h2');
+  heading.scrollIntoView({block:'start'});
+  heading.focus({preventScroll:true});
+}));
 document.querySelectorAll('[data-publish],[data-opportunity]').forEach(control => {
   control.addEventListener('click', () => openPanel('publish', control));
 });
@@ -653,13 +904,21 @@ byId('sign-out').addEventListener('click', async () => {
   }
   await discovery;
   if (destination) {
-    const isProfile = ['professionista','profile'].includes(destination);
+    const profileKind = profileKinds[destination];
+    const proposalKind = destination.startsWith('proposta-') ? proposalKinds[destination.slice('proposta-'.length)] : undefined;
+    const isProfile = Boolean(profileKind) || destination === 'profile';
     const opportunity = opportunityTypes[destination];
-    const trigger = opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
-      destination === 'professionista' ? document.querySelector('[data-profile-kind=Professionista]') :
+    const trigger = destination === 'join-network' ? joinButton : proposalKind ? document.querySelector('[data-proposal-kind="' + proposalKind + '"]') :
+      opportunity ? document.querySelector('[data-opportunity="' + opportunity + '"]') :
+      profileKind ? document.querySelector('[data-profile-kind="' + profileKind + '"]') :
       isProfile ? document.querySelector('[data-open=profile]') : publishButton;
-    const next = () => openPanel(isProfile ? 'profile' : 'publish', trigger);
+    const next = destination === 'join-network' ? welcomeNetwork :
+      () => openPanel(proposalKind ? 'proposal' : isProfile ? 'profile' : 'publish', trigger);
     if (member) next();
     else openPanel('google-profile', trigger, next);
-  } else if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
+  } else if (validSharedPost) {
+    const post = posts.find(item => item.id === sharedPostId);
+    if (post) openPost(post);
+    else notice('Questo post non è disponibile. Puoi consultare le altre richieste e offerte.');
+  } else if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join',joinButton,welcomeNetwork);
 })();
