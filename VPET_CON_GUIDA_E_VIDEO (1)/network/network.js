@@ -353,6 +353,12 @@ function renderFeed() {
       card.append(button('Aiuto ricevuto',event => openPanel('resolve',event.currentTarget,undefined,post)));
     }
     sharePost(post,card);
+    if (openedPost && !member) {
+      const join = button('Iscriviti e partecipa',event => openPanel('join',event.currentTarget,welcomeNetwork));
+      join.setAttribute('data-join-network','');
+      join.classList.add('primary','shared-post-join');
+      card.append(join);
+    }
     if (openedPost) card.append(button('Torna ai risultati', () => {
       openedPost = undefined;
       renderFeed();
