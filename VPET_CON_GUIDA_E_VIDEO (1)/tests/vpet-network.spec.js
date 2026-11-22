@@ -125,3 +125,26 @@ test('Le offerte ruotano ogni 10 secondi e aprono il post specifico', async ({pa
   assert.equal(await page.locator('#feed article').count(),1);
   assert.equal(await page.locator('#feed article h3').textContent(),second);
 });
+
+for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · scenario ' + age, async ({page}) => {
+  await page.setViewportSize({width,height:850});
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('https://enmhknczdgtivjiwszwk.supabase.co/rest/**', route =>
+    route.fulfill({json:[],headers:{'Access-Control-Allow-Origin':'*'}}));
+  await page.goto('/');
+  await page.getByRole('button',{name:'Entra nel network',exact:true}).click();
+  const network = page.locator('#network');
+  await network.getByRole('heading',{name:'Chi cerca, chi offre'}).waitFor();
+  await page.evaluate(z => document.documentElement.style.fontSize = (16*z)+'px',zoom);
+  assert(await network.evaluate(host => host.scrollWidth <= host.clientWidth + 1));
+  await network.getByRole('button',{name:'Invita una realtà',exact:true}).first().click();
+  assert.equal(new URL(await network.locator('#invite-link').inputValue()).hash,'#network');
+  await page.keyboard.press('Escape');
+  await network.getByRole('link',{name:'Servizi VPET',exact:true}).click();
+  const breeds = page.locator('.wrap,.mobilePhotoDash').getByRole('button',{name:/^Guida alle razze$/i}).filter({visible:true});
+  await breeds.click();
+  await page.getByRole('heading',{name:'Guida alle Razze',exact:true}).waitFor();
+  await page.getByRole('button',{name:/24 razze feline/}).waitFor();
+  assert.deepEqual(errors,[]);
+});
