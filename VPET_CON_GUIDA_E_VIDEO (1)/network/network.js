@@ -510,7 +510,7 @@ function openPanel(key, trigger, resume, post) {
   }
   if (['publish','profile','proposal'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
   if (key === 'admin' && !moderator) return;
-  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind === 'Azienda' ? 'Presenta la tua azienda' : trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',resolve:'Aiuto ricevuto',proposal:'Proponi una collaborazione a Pet Carpet',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind === 'Azienda' ? 'Presenta la tua azienda' : trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',resolve:'Aiuto ricevuto',proposal:'Proponi una collaborazione a Pet Carpet',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione Pet Carpet'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
@@ -666,15 +666,39 @@ function openPanel(key, trigger, resume, post) {
     loading.setAttribute('role','status');
     inbox.append(el('h3','Proposte di collaborazione'),loading,proposalList);
     body.append(inbox,el('p','Recapiti delle realtà e moderazione dei contenuti.'));
-    networkService.rest('proposals','?order=created_at.desc&limit=100').then(rows => {
+    networkService.rest('proposals','?select=*,network_proposal_followups(status,next_contact,internal_note)&order=created_at.desc&limit=100').then(rows => {
       if (!inbox.isConnected) return;
       loading.textContent = rows.length ? '' : 'Nessuna proposta ricevuta.';
       for (const row of rows) {
         const proposal = el('article','','card');
         const reply = el('a','Rispondi via email','contact');
         reply.href = 'mailto:' + encodeURIComponent(row.email) + '?subject=' + encodeURIComponent('Proposta di collaborazione · Pet Carpet');
+        const followup = byId('followup').content.cloneNode(true);
+        const summary = followup.querySelector('summary');
+        const form = followup.querySelector('form');
+        const status = form.querySelector('[data-form-status]');
+        const saved = row.network_proposal_followups;
+        for (const field of ['status','next_contact','internal_note']) {
+          if (saved?.[field]) form.elements[field].value = saved[field];
+        }
+        const updateSummary = () => {
+          const date = form.elements.next_contact.value;
+          summary.textContent = form.elements.status.value + (date ?
+            ' · Prossimo contatto il ' + dateFormat.format(new Date(date)) : ' · Gestisci collaborazione');
+        };
+        updateSummary();
+        form.addEventListener('submit',event => {
+          event.preventDefault();
+          submit(form,async () => {
+            const {status:state,next_contact,internal_note} = Object.fromEntries(new FormData(form));
+            await networkService.put('proposal_followups',{proposal_id:row.id,status:state,next_contact:next_contact || null,
+              internal_note:internal_note.trim()});
+            updateSummary();
+            status.textContent = 'Aggiornamento salvato.';
+          });
+        });
         proposal.append(el('h4',row.name),el('p',row.kind + ' · ' + row.city,'meta'),
-          el('p',row.message),reply);
+          el('p',row.message),reply,followup);
         proposalList.append(proposal);
       }
     }).catch(() => {

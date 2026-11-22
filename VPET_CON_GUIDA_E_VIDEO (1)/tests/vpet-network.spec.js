@@ -214,6 +214,7 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   const requestId = 'c41cbc00-b948-41bb-8a95-78932aa26e53';
   const author = '2';
   let privateProposal;
+  let savedFollowup;
   const request = {id:requestId,owner:author,type:'Cerchiamo',city:'Roma',title:'Servono coperte',
     body:'Due coperte pulite per il rifugio.',network_members:{name:'Rifugio QA'},network_resolutions:null};
   await page.route(origin + '/auth/**',route => route.fulfill({
@@ -221,14 +222,18 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   }));
   await page.route(origin + '/rest/**',route => {
     const path = new URL(route.request().url()).pathname;
-    if (path.endsWith('network_proposals')) privateProposal = route.request().postDataJSON();
+    if (path.endsWith('network_proposals')) {
+      if (route.request().method() === 'POST') privateProposal = route.request().postDataJSON();
+      return route.fulfill({json:privateProposal ? [{...privateProposal,id:'proposal-qa'}] : [],headers});
+    }
+    if (path.endsWith('network_proposal_followups')) savedFollowup = route.request().postDataJSON();
     if (path.endsWith('network_resolutions')) {
       const {post_id,thanks} = route.request().postDataJSON();
       assert.equal(post_id,requestId);
       request.network_resolutions = {thanks,resolved_at:'2026-11-22T14:00:00Z'};
     }
     return route.fulfill({json:path.endsWith('network_posts') ? [request] :
-      path.endsWith('network_members') ? [{name:'Rifugio QA'}] : [],headers});
+      path.endsWith('network_members') ? [{name:'Rifugio QA'}] : path.endsWith('network_moderators') ? [{id:author}] : [],headers});
   });
   await page.addInitScript(() => sessionStorage.setItem('vpet-network-session',JSON.stringify({refresh_token:'test'})));
   await page.goto('/?post=' + requestId + '#network');
@@ -255,4 +260,13 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   assert.equal(privateProposal.owner,author);
   assert.equal(privateProposal.kind,'Azienda');
   assert.equal(await article.getByText('Possiamo ospitare una raccolta.').count(),0);
+  await page.getByRole('button',{name:'Rubrica Pet Carpet'}).click();
+  await page.getByText('Nuova · Gestisci collaborazione').click();
+  await page.getByLabel('Stato',{exact:true}).selectOption('Attiva');
+  await page.getByLabel('Prossimo contatto').fill('2026-12-15');
+  await page.getByLabel('Note interne').fill('Pet Carpet coordina il prossimo ritiro.');
+  await page.getByRole('button',{name:'Salva aggiornamento'}).click();
+  await page.getByText('Aggiornamento salvato.').waitFor();
+  assert.equal(savedFollowup.next_contact,'2026-12-15');
+  assert.equal(savedFollowup.status,'Attiva');
 });

@@ -176,6 +176,20 @@
 <button class="primary" type="submit">Invia a Pet Carpet</button>
 </form>
 </template>
+<template id="followup">
+<details class="proposal-followup">
+<summary>Gestisci collaborazione</summary>
+<form>
+<div class="pair">
+<label>Stato <select name="status"><option>Nuova</option><option>In valutazione</option><option>Attiva</option><option>Conclusa</option></select></label>
+<label>Prossimo contatto <input name="next_contact" type="date"></label>
+</div>
+<label>Note interne <textarea name="internal_note" maxlength="2000" placeholder="Referente Pet Carpet, realtà coinvolta, accordi presi e prossima azione"></textarea></label>
+<p class="hint" data-form-status role="status"></p>
+<button class="primary" type="submit">Salva aggiornamento</button>
+</form>
+</details>
+</template>
 <template id="resolve">
 <form>
 <p>La richiesta passerà tra gli «Aiuti riusciti». Puoi aggiungere un ringraziamento pubblico.</p>
