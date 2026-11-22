@@ -32,3 +32,9 @@ footer>div{margin-right:auto}
 .hero button,.invite-actions>*{min-height:48px}
 .hero button:focus-visible,footer button:focus-visible{outline-color:#fff}
 @media(max-width:500px){.actions{display:grid;grid-template-columns:1fr 1fr}.actions .primary{grid-column:1/-1}.actions button{padding-inline:.55rem}.filters{gap:.35rem}.filters button{padding-inline:.7rem}}
+.comments{margin-top:1rem;border-top:1px solid var(--line);padding-top:.4rem}
+.comments summary{min-height:44px;padding:.55rem 0;font-weight:750;color:var(--green);cursor:pointer}
+.comment{padding:.7rem .9rem;background:var(--paper);border-radius:12px;margin:.5rem 0}
+.comment p{margin:.2rem 0}
+.comments textarea{min-height:4.5rem}
+#experience-fields{display:grid;gap:1rem}

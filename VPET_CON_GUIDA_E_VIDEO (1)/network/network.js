@@ -6,10 +6,12 @@ const body = byId('dialog-body');
 const posts = [
   {author:'Rifugio del quartiere',city:'Roma',type:'Cerchiamo',title:'Una mattina da donare',body:'Cerchiamo volontari per sistemare le aree di passeggio insieme.',sample:true},
   {author:'Bottega a quattro zampe',city:'Roma',type:'Offriamo',title:'Coperte pronte per un nuovo inverno',body:'Mettiamo a disposizione coperte pulite per una realtà del territorio.',sample:true},
-  {author:'Amici del parco',city:'Castel Gandolfo',type:'Eventi',title:'Una passeggiata per conoscersi',body:'Un incontro tra associazioni, volontari e famiglie.',sample:true}
+  {author:'Amici del parco',city:'Castel Gandolfo',type:'Eventi',title:'Una passeggiata per conoscersi',body:'Un incontro tra associazioni, volontari e famiglie.',sample:true},
+  {author:'Rifugio del quartiere',city:'Roma',type:'Esperienze',title:'Le coperte sono arrivate al rifugio',body:'Una realtà del quartiere ha messo a disposizione uno spazio per la raccolta. I volontari hanno organizzato il ritiro.',partner:'Bottega a quattro zampe',outcome:'Abbiamo ricevuto coperte pulite e trovato nuovi volontari per la prossima raccolta.',sample:true}
 ];
 const profiles = [];
 const notes = new Map();
+const comments = new Map();
 let filter = '';
 let recorder;
 let pendingFile;
@@ -43,16 +45,70 @@ function attachment(file, url) {
   }
   return node;
 }
+function commentSection(post) {
+  const section = el('details', '', 'comments');
+  const list = comments.get(post) || [];
+  const summary = el('summary', list.length === 1 ? '1 commento' : list.length + ' commenti');
+  section.append(summary);
+  for (const comment of list) {
+    const entry = el('div', '', 'comment');
+    entry.append(el('strong', comment.author), el('p', comment.message));
+    section.append(entry);
+  }
+  if (!member) {
+    section.append(button('Iscriviti per commentare', event => openPanel('join', event.currentTarget, () => {
+      renderFeed();
+      const sections = byId('feed').querySelectorAll('details');
+      const visiblePosts = Array.from(byId('feed').children);
+      const index = visiblePosts.findIndex(card => card.dataset.post === String(posts.indexOf(post)));
+      if (sections[index]) {
+        sections[index].open = true;
+        sections[index].querySelector('textarea')?.focus();
+      }
+    })));
+    return section;
+  }
+  const form = el('form');
+  const label = el('label', 'Scrivi un commento');
+  const field = el('textarea');
+  field.required = true;
+  field.maxLength = 600;
+  label.append(field);
+  const send = el('button', 'Pubblica commento', 'primary');
+  send.type = 'submit';
+  form.append(label, send);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const message = field.value.trim();
+    if (!message) {
+      field.value = '';
+      field.reportValidity();
+      return;
+    }
+    list.push({author:member, message});
+    comments.set(post, list);
+    const updated = commentSection(post);
+    updated.open = true;
+    section.replaceWith(updated);
+    updated.querySelector('textarea')?.focus();
+  });
+  section.append(form);
+  return section;
+}
 function renderFeed() {
   const city = byId('territory').value.trim().toLocaleLowerCase('it');
   const matches = posts.filter(post => (!filter || post.type === filter) && post.city.toLocaleLowerCase('it').includes(city));
   byId('results').textContent = matches.length ? matches.length + (matches.length === 1 ? ' post' : ' post trovati') : 'Nessun post corrispondente.';
   byId('feed').replaceChildren(...matches.map(post => {
     const card = el('article', '', 'card');
+    card.dataset.post = String(posts.indexOf(post));
     card.append(el('div', post.type + (post.sample ? ' · Esempio' : ''), 'tag'), el('h3', post.title),
       el('div', [post.author, post.city, post.date].filter(Boolean).join(' · '), 'meta'), el('p', post.body));
+    if (post.partner) card.append(el('p', 'In collaborazione con ' + post.partner, 'meta'));
+    if (post.outcome) card.append(el('strong', 'Che cosa abbiamo ottenuto'), el('p', post.outcome));
     if (notes.has(post)) card.append(el('p', 'Pet Carpet · ' + notes.get(post)));
     if (post.file) card.append(attachment(post.file, post.url));
+    card.append(commentSection(post));
     return card;
   }));
 }
@@ -125,6 +181,10 @@ function setupComposer(form) {
     const isEvent = form.elements.type.value === 'Eventi';
     form.elements.date.required = isEvent;
     byId('event-date').hidden = !isEvent;
+    const isExperience = form.elements.type.value === 'Esperienze';
+    byId('experience-fields').hidden = !isExperience;
+    form.elements.partner.required = isExperience;
+    form.elements.outcome.required = isExperience;
   });
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
     record.hidden = true;
@@ -169,6 +229,10 @@ function setupComposer(form) {
     const post = Object.fromEntries(new FormData(form));
     post.author = member;
     if (post.type !== 'Eventi') delete post.date;
+    if (post.type !== 'Esperienze') {
+      delete post.partner;
+      delete post.outcome;
+    }
     if (pendingFile) {
       post.file = pendingFile;
       post.url = URL.createObjectURL(pendingFile);
@@ -200,7 +264,7 @@ function setupInvite() {
     }
   });
 }
-function openPanel(key, trigger) {
+function openPanel(key, trigger, resume) {
   previousFocus = trigger;
   const titles = {join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
   byId('dialog-title').textContent = titles[key];
@@ -218,7 +282,12 @@ function openPanel(key, trigger) {
       return;
     }
     document.querySelector('[data-publish]').textContent = 'Pubblica';
-    openPanel('publish', trigger);
+    if (resume) {
+      dialog.addEventListener('close', resume, {once:true});
+      dialog.close();
+    } else {
+      openPanel('publish', trigger);
+    }
   });
   if (key === 'profile') body.querySelector('form').addEventListener('submit', event => {
     event.preventDefault();
@@ -235,6 +304,18 @@ function openPanel(key, trigger) {
       el('p','Per il lancio pubblico serviranno l’informativa completa di Pet Carpet, le regole del network e le preferenze di contatto per ogni canale.'));
   }
   if (key === 'admin') {
+    for (const [post, list] of comments) {
+      for (const comment of list) {
+        const card = el('article', '', 'card');
+        card.append(el('div', 'Commento su ' + post.title, 'meta'), el('strong', comment.author), el('p', comment.message),
+          button('Rimuovi commento dalla prova', () => {
+            list.splice(list.indexOf(comment), 1);
+            renderFeed();
+            dialog.close();
+          }));
+        body.append(card);
+      }
+    }
     body.append(el('p','Simulazione degli strumenti di Pet Carpet. Usa solo dati fittizi.'));
     for (const profile of profiles) {
       const card = el('article', '', 'card');
@@ -255,6 +336,7 @@ function openPanel(key, trigger) {
       }), button('Rimuovi dalla prova', () => {
         posts.splice(posts.indexOf(post), 1);
         notes.delete(post);
+        comments.delete(post);
         if (post.url) URL.revokeObjectURL(post.url);
         renderFeed();
         dialog.close();

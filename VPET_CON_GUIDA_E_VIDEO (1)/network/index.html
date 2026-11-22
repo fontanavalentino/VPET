@@ -23,7 +23,7 @@
 <section aria-labelledby="feed-title">
 <h2 id="feed-title">La rete in movimento</h2>
 <p class="intro">Scopri chi fa, chi cerca e chi può dare una mano.</p>
-<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button></div>
+<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button><button aria-pressed="false" data-filter="Esperienze">Esperienze</button></div>
 <label class="territory">Cerca per territorio <input id="territory" placeholder="Es. Roma" type="search"></label>
 <p id="results" role="status"></p>
 <div id="feed"></div>
@@ -46,9 +46,13 @@
 <template id="publish">
 <form>
 <p id="publishing-as" class="hint"></p>
-<div class="pair"><label>Tipo di post <select name="type"><option>Storie</option><option>Eventi</option><option>Cerchiamo</option><option>Offriamo</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
+<div class="pair"><label>Tipo di post <select name="type"><option>Storie</option><option>Esperienze</option><option>Eventi</option><option>Cerchiamo</option><option>Offriamo</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
 <label>Titolo <input name="title" maxlength="100" required></label>
 <label>Raccontaci <textarea name="body" maxlength="2000" required></textarea></label>
+<div id="experience-fields" hidden>
+<label>Con chi hai collaborato <input name="partner" maxlength="100"></label>
+<label>Che cosa avete ottenuto insieme? <textarea name="outcome" maxlength="800"></textarea></label>
+</div>
 <label id="event-date" hidden>Data dell’evento <input name="date" type="date"></label>
 <label>Foto, video o vocale <input id="attachment" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm"></label>
 <p class="hint">Un allegato per post, fino a 20 MB. Carica un vocale dal telefono oppure registralo qui.</p>
