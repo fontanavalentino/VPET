@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {cp, readFile, writeFile} from 'node:fs/promises';
 
 await cp('network', 'dist/network', {recursive:true});
@@ -40,9 +41,8 @@ const combined = html.slice(0, networkIndex) + switcher + mountedNetwork +
 const updated = combined
   .replace('<button class="vmDashboard" data-go="dashboard">', '<button class="vmDashboard" id="vpetOpenNetwork" type="button">Entra nel network</button><button class="vmDashboard" data-go="dashboard">')
   .replace('<p class="vmLead">', '<div class="vmNetworkIntro"><p><strong>VPET è il sito di Pet Carpet per chi ama e aiuta gli animali.</strong> Nel Network le associazioni si presentano, condividono eventi e si aiutano: chi cerca volontari, materiali o collaborazioni incontra chi può dare una mano.</p><p>Puoi leggere liberamente. Iscriviti per pubblicare o commentare. Nella dashboard trovi guide, adozioni, razze e Pet SOS.</p></div><p class="vmLead">')
-  .replace('</head>', '<style>@supports(overflow:clip){html,body{overflow-x:clip}}.vpet-view-switch{position:sticky;top:0;z-index:120;display:flex;justify-content:center;gap:.5rem;background:#102820;padding:.45rem .6rem;border-bottom:1px solid #39594e}.vpet-view-switch a{color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.25rem .9rem;border:1px solid #789183;border-radius:10px;font:700 1rem/1.25 system-ui,sans-serif}.vpet-view-switch a[aria-current]{color:#19271f;background:#f7d480;border-color:#f7d480}.vpet-view-switch a:focus-visible{outline:2px solid white;outline-offset:2px}#network[hidden],#vpet-servizi[hidden]{display:none!important}#network,#vpet-servizi{scroll-margin-top:62px}@media(max-width:600px){.vpet-view-switch a{flex:1;max-width:11rem;text-align:center}}.vmNetworkIntro{margin:1rem 0;padding:.8rem 1rem;border-left:3px solid #f7d480;background:#142b38;color:#f5f7f9;border-radius:0 12px 12px 0;font-size:clamp(1rem,1.8vw,1.125rem);line-height:1.5}.vmNetworkIntro p{margin:0}.vmNetworkIntro p+p{margin-top:.5rem}@media(max-width:760px){.vmNavActions{flex-wrap:wrap}.vmNetworkIntro{padding:.65rem .8rem}}</style></head>')
-  .replace('</body>', '<script type="module" src="/network/integrated.js"></script></body>');
-await writeFile('dist/index.html', updated);
+  .replace('</head>', '<style>@supports(overflow:clip){html,body{overflow-x:clip}}.vpet-view-switch{position:sticky;top:env(safe-area-inset-top,0px);z-index:120;display:flex;justify-content:center;gap:.5rem;background:#102820;padding:.45rem .6rem;border-bottom:1px solid #39594e}.vpet-view-switch a{color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.25rem .9rem;border:1px solid #789183;border-radius:10px;font:700 1rem/1.25 system-ui,sans-serif}.vpet-view-switch a[aria-current]{color:#19271f;background:#f7d480;border-color:#f7d480}.vpet-view-switch a:focus-visible{outline:2px solid white;outline-offset:2px}#network[hidden],#vpet-servizi[hidden]{display:none!important}#network,#vpet-servizi{scroll-margin-top:calc(62px + env(safe-area-inset-top,0px))}@media(max-width:600px){.vpet-view-switch a{flex:1;max-width:11rem;text-align:center}}.vmNetworkIntro{margin:1rem 0;padding:.8rem 1rem;border-left:3px solid #f7d480;background:#142b38;color:#f5f7f9;border-radius:0 12px 12px 0;font-size:clamp(1rem,1.8vw,1.125rem);line-height:1.5}.vmNetworkIntro p{margin:0}.vmNetworkIntro p+p{margin-top:.5rem}@media(max-width:760px){.vmNavActions{flex-wrap:wrap}.vmNetworkIntro{padding:.65rem .8rem}}</style></head>')
+  .replace('</body>', '<script>document.getElementById("vpetOpenNetwork").addEventListener("click", () => { if (!document.getElementById("network").hasAttribute("data-ready")) location.assign("/network/"); });</script></body>');
 
 const scopedNetwork = network
   .replace('document.getElementById(id)', 'root.getElementById(id)')
@@ -101,7 +101,14 @@ window.addEventListener('hashchange', () => {
   if (['', '#network', '#vpet-servizi'].includes(location.hash)) showView(location.hash === '#network', true);
 });
 const query = new URLSearchParams(location.search);
-const isNetwork = location.hash === '#network' || query.has('iscriviti') || query.get('accesso') === 'google';
+const installed = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const installedHome = installed && location.pathname === '/' && !location.hash;
+const isNetwork = location.hash === '#network' || query.has('iscriviti') || query.get('accesso') === 'google' || installedHome;
 if (isNetwork || location.hash === '#vpet-servizi') dashboardButton?.click();
-showView(isNetwork, isNetwork || location.hash === '#vpet-servizi');`;
-await writeFile('dist/network/integrated.js', `${integration}\n${service}\n${scopedNetwork}\n`);
+showView(isNetwork, isNetwork || location.hash === '#vpet-servizi');
+host.setAttribute('data-ready','');`;
+const script = `${integration}\n${service}\n${scopedNetwork}\n`;
+const version = createHash('sha256').update(script).digest('hex').slice(0,12);
+await writeFile('dist/network/integrated.js', script);
+await writeFile('dist/index.html', updated.replace('</body>',
+  `<script type="module" src="/network/integrated.js?v=${version}"></script></body>`));

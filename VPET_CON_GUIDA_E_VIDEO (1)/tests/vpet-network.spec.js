@@ -293,3 +293,30 @@ test('La richiesta condivisa si apre e chi la pubblica può ringraziare e chiude
   await page.getByLabel('Associazione o progetto beneficiario').fill('Rifugio QA');
   await page.getByLabel('Come contribuisce l’opera?').fill('2 euro a copia');
 });
+
+test('L’app installata su iPhone apre direttamente il Network', async ({page}) => {
+  await page.addInitScript(() => Object.defineProperty(navigator,'standalone',{value:true}));
+  await page.route('https://enmhknczdgtivjiwszwk.supabase.co/**',route =>
+    route.fulfill({json:[],headers:{'Access-Control-Allow-Origin':'*'}}));
+  await page.goto('/');
+  const network = page.locator('#network');
+  await network.getByRole('button',{name:'Ho bisogno di aiuto',exact:true}).waitFor();
+  assert.equal(await page.locator('#vpet-home').isVisible(),false);
+  await page.getByRole('link',{name:'Servizi VPET',exact:true}).click();
+  await page.locator('#vpet-servizi').waitFor();
+  await page.getByRole('link',{name:'Network',exact:true}).click();
+  await network.getByRole('button',{name:'Posso dare una mano',exact:true}).click();
+  await network.getByRole('dialog').waitFor();
+});
+
+test('Il tasto Network apre la pagina dedicata se lo script integrato non si carica', async ({page}) => {
+  await page.setViewportSize({width:320,height:660});
+  await page.route('**/network/integrated.js*',route => route.abort());
+  await page.goto('/');
+  const button = page.getByRole('button',{name:'Entra nel network',exact:true});
+  const box = await button.boundingBox();
+  assert(box && box.y >= 0 && box.y + box.height <= 200 && box.width <= 320);
+  await button.click();
+  await page.waitForURL('**/network/');
+  await page.getByRole('button',{name:'Ho bisogno di aiuto',exact:true}).waitFor();
+});
