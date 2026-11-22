@@ -92,6 +92,11 @@ switcher.addEventListener('click', event => {
   event.preventDefault();
   chooseView(link.hash === '#network');
 });
+for (const nav of document.querySelectorAll('.vpetQuickNav,.vpetBottomNav')) {
+  nav.addEventListener('click', event => {
+    if (services.hidden && event.target.closest('button')) chooseView(false);
+  }, {capture:true});
+}
 window.addEventListener('hashchange', () => {
   if (['', '#network', '#vpet-servizi'].includes(location.hash)) showView(location.hash === '#network', true);
 });
