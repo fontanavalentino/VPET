@@ -38,3 +38,13 @@ footer>div{margin-right:auto}
 .comment p{margin:.2rem 0}
 .comments textarea{min-height:4.5rem}
 #experience-fields{display:grid;gap:1rem}
+.company .contact{background:var(--green);color:white;border-color:var(--green)}
+.company .hint{margin-top:.75rem;overflow-wrap:anywhere}
+.network-status{max-width:1120px;margin:1rem auto;padding:.85rem 1rem;background:#e4ebe2;border-left:4px solid var(--green)}
+.legal{max-width:760px;margin:3rem auto;padding:0 1rem}
+.legal h1{font-size:clamp(2rem,6vw,4rem)}
+.bar nav{display:flex;align-items:center;gap:.85rem}
+.bar nav button{font-size:.875rem;min-height:44px}
+.install-steps details{border-top:1px solid var(--line);padding:.6rem 0}
+.install-steps summary{cursor:pointer;min-height:44px;display:list-item;padding:.55rem 0;font-weight:700}
+@media(max-width:390px){.bar{gap:.4rem;padding-inline:.55rem}.bar nav{gap:.45rem}.bar nav button{padding-inline:.55rem}.brand{font-size:1.07rem}}

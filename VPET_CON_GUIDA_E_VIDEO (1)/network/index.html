@@ -5,12 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Il network di Pet Carpet per le associazioni e le persone che si prendono cura degli animali.">
 <title>VPET Network · Pet Carpet</title>
+<meta name="theme-color" content="#173c31">
+<link rel="manifest" href="/network/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/network/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/network/icon-180.png">
 <link rel="stylesheet" href="/network/network.css">
+<script defer src="/network/service.js"></script>
 <script defer src="/network/network.js"></script>
 </head>
 <body>
-<header class="bar"><a class="brand" href="/network/">VPET <span>Network</span></a><a href="/">Tutti i servizi VPET</a></header>
+<header class="bar"><a class="brand" href="/network/">VPET <span>Network</span></a><nav aria-label="Menu VPET"><button type="button" data-open="install">Installa VPET</button><a href="/">Servizi VPET</a></nav></header>
 <main>
+<p id="network-status" class="network-status" role="status" hidden></p>
 <section class="hero">
 <div class="hero-copy">
 <p class="eyebrow">IL NETWORK DI PET CARPET</p>
@@ -30,17 +36,43 @@
 </section>
 <aside>
 <div class="panel"><p class="eyebrow">FARE RETE</p><h2>Quello che puoi dare può essere proprio ciò che manca a qualcuno.</h2><button data-open="invite">Invita una realtà</button></div>
+<div class="panel company"><h2>Sei un’azienda e vuoi entrare?</h2><p>Raccontaci che cosa puoi fare per gli animali e cosa puoi mettere a disposizione. Prodotti, spazi, servizi o tempo del tuo team possono fare la differenza.</p>
+<a class="contact" href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet&amp;body=Buongiorno%20Pet%20Carpet%2C%0D%0A%0D%0AAzienda%3A%20%0D%0AReferente%20e%20recapito%3A%20%0D%0ATerritorio%3A%20%0D%0ACosa%20possiamo%20fare%20o%20mettere%20a%20disposizione%3A%20%0D%0A">Scrivi a Pet Carpet</a>
+<p class="hint"><a href="mailto:petcarpetfestival@gmail.com?subject=Candidature%20Network%20Pet%20Carpet">petcarpetfestival@gmail.com</a></p></div>
 <div class="panel"><h2>Le realtà del network</h2><div id="directory"></div></div>
 </aside>
 </div>
 </main>
-<footer><div><strong>VPET Network · Associazione Pet Carpet</strong><address>Via Alessandro Castelli 36 F, Roma<br><a href="mailto:petcarpetfestival@gmail.com">petcarpetfestival@gmail.com</a> · <a href="tel:+393277851570">+39 327 785 1570</a></address><a href="https://www.petcarpetfestival.it/lassociazione/">Chi è Pet Carpet</a></div><button data-open="privacy">Privacy e pubblicazione</button><button data-open="admin">Rubrica di prova</button></footer>
+<footer><div><strong>VPET Network · Associazione Pet Carpet</strong><address>Via Alessandro Castelli 36 F, Roma<br><a href="mailto:petcarpetfestival@gmail.com">petcarpetfestival@gmail.com</a> · <a href="tel:+393277851570">+39 327 785 1570</a></address><a href="https://www.petcarpetfestival.it/lassociazione/">Chi è Pet Carpet</a></div><button data-open="privacy">Privacy e pubblicazione</button><button data-open="admin" hidden>Rubrica Pet Carpet</button><button id="sign-out" hidden>Esci</button></footer>
 <dialog id="dialog" aria-labelledby="dialog-title"><header><h2 id="dialog-title"></h2><button id="close" aria-label="Chiudi">×</button></header><div id="dialog-body"></div></dialog>
+<template id="install">
+<p>Metti VPET sulla schermata Home o sul computer e aprilo dall’icona.</p>
+<button type="button" class="primary" id="install-app" hidden>Installa adesso</button>
+<div class="install-steps">
+<details><summary>iPhone e iPad · Safari</summary><ol><li>Apri VPET in Safari e tocca <strong>Condividi</strong>.</li><li>Scegli <strong>Aggiungi alla schermata Home</strong>.</li><li>Attiva <strong>Apri come app web</strong> se compare, poi tocca <strong>Aggiungi</strong>.</li></ol></details>
+<details><summary>Android · Chrome</summary><ol><li>Apri VPET in Chrome e tocca il menu <strong>⋮</strong>.</li><li>Scegli <strong>Installa app</strong> oppure <strong>Aggiungi a schermata Home</strong>.</li><li>Conferma per aggiungere l’icona.</li></ol></details>
+<details><summary>Mac · Safari</summary><ol><li>Apri VPET in Safari su macOS Sonoma o successivo.</li><li>Scegli <strong>File → Aggiungi al Dock</strong>.</li><li>Lascia il nome Vpet e fai clic su <strong>Aggiungi</strong>.</li></ol><p>In Chrome puoi usare il menu di installazione della pagina.</p></details>
+<details><summary>Windows · Edge o Chrome</summary><ol><li>Se compare il pulsante di installazione nella barra degli indirizzi, selezionalo.</li><li>In Edge puoi anche aprire <strong>Impostazioni e altro → Altri strumenti → Applicazioni</strong> e scegliere <strong>Installa questo sito come app</strong>.</li><li>In Edge puoi aggiungere il collegamento al desktop dalle opzioni dell’app installata.</li></ol></details>
+</div>
+</template>
 <template id="join">
 <form>
 <label>Nome da mostrare nel network <input name="displayName" autocomplete="nickname" maxlength="80" required></label>
-<p class="hint">Usa un nome di prova. Dopo questo passaggio puoi scrivere il tuo primo post.</p>
+<label>Email <input name="email" autocomplete="email" type="email" required></label>
+<label>Password <input name="password" autocomplete="new-password" type="password" minlength="8" required></label>
+<label class="check"><input type="checkbox" required> Ho almeno 18 anni e accetto le regole di pubblicazione.</label>
+<p class="hint">Usa un nome pubblico. L’email di accesso resta privata. <a href="/network/privacy.html">Privacy e regole del network</a></p>
+<button type="button" data-login>Ho già un account</button>
+<p class="hint" data-form-status role="status"></p>
 <button class="primary" type="submit">Continua e pubblica</button>
+</form>
+</template>
+<template id="login">
+<form>
+<label>Email <input name="email" autocomplete="email" type="email" required></label>
+<label>Password <input name="password" autocomplete="current-password" type="password" required></label>
+<p data-form-status class="hint" role="status"></p>
+<button class="primary" type="submit">Accedi</button>
 </form>
 </template>
 <template id="publish">
@@ -59,8 +91,8 @@
 <button type="button" id="record">Registra un vocale</button>
 <div id="media-preview"></div>
 <label class="check"><input type="checkbox" required> Ho il diritto di condividere il contenuto e ho le autorizzazioni necessarie per le persone riconoscibili.</label>
-<p class="hint">Anteprima. Usa contenuti fittizi. Il post sarà visibile in questa sessione di prova.</p>
-<button class="primary" type="submit">Pubblica nella prova</button>
+<p class="hint">Il post e gli allegati saranno pubblici. Evita recapiti privati e informazioni sulle persone senza autorizzazione.</p>
+<button class="primary" type="submit">Pubblica post</button>
 </form>
 </template>
 <template id="profile">
@@ -72,8 +104,8 @@
 <label>WhatsApp <input name="whatsapp" type="tel" maxlength="22" placeholder="+39"></label>
 <label>Email <input name="email" type="email" maxlength="150"></label>
 <label class="check"><input type="checkbox" name="public"> Mostra i recapiti sulla pagina della realtà</label>
-<p class="hint">In anteprima usa recapiti fittizi. I recapiti nascosti restano visibili nella rubrica di prova.</p>
-<button class="primary" type="submit">Crea la pagina di prova</button>
+<p class="hint">I recapiti sono accessibili alla redazione di Pet Carpet e appaiono nella scheda solo se scegli di mostrarli.</p>
+<button class="primary" type="submit">Salva la scheda</button>
 </form>
 </template>
 <template id="invite">

@@ -3,12 +3,7 @@
 const byId = id => document.getElementById(id);
 const dialog = byId('dialog');
 const body = byId('dialog-body');
-const posts = [
-  {author:'Rifugio del quartiere',city:'Roma',type:'Cerchiamo',title:'Una mattina da donare',body:'Cerchiamo volontari per sistemare le aree di passeggio insieme.',sample:true},
-  {author:'Bottega a quattro zampe',city:'Roma',type:'Offriamo',title:'Coperte pronte per un nuovo inverno',body:'Mettiamo a disposizione coperte pulite per una realtà del territorio.',sample:true},
-  {author:'Amici del parco',city:'Castel Gandolfo',type:'Eventi',title:'Una passeggiata per conoscersi',body:'Un incontro tra associazioni, volontari e famiglie.',sample:true},
-  {author:'Rifugio del quartiere',city:'Roma',type:'Esperienze',title:'Le coperte sono arrivate al rifugio',body:'Una realtà del quartiere ha messo a disposizione uno spazio per la raccolta. I volontari hanno organizzato il ritiro.',partner:'Bottega a quattro zampe',outcome:'Abbiamo ricevuto coperte pulite e trovato nuovi volontari per la prossima raccolta.',sample:true}
-];
+const posts = [];
 const profiles = [];
 const notes = new Map();
 const comments = new Map();
@@ -18,7 +13,71 @@ let pendingFile;
 let previewUrl;
 let previousFocus;
 let member;
+let moderator = false;
+let installPrompt;
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  installPrompt = event;
+  const control = byId('install-app');
+  if (control) control.hidden = false;
+});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/network/sw.js').catch(() => {});
 
+function notice(message) {
+  const node = byId('network-status');
+  node.textContent = message;
+  node.hidden = !message;
+}
+
+async function loadNetwork() {
+  const [newPosts, newProfiles, newComments, newNotes, contacts] = await Promise.all([
+    networkService.rest('posts', '?select=*,network_members(name)&order=created_at.desc&limit=150'),
+    networkService.rest('profiles', '?order=name.asc&limit=500'),
+    networkService.rest('comments', '?select=*,network_members(name)&order=created_at.asc&limit=2000'),
+    networkService.rest('notes', '?select=*'),
+    networkService.rest('contacts', '?select=*&limit=500')
+  ]);
+  const contactsByOwner = new Map(contacts.map(row => [row.owner, row]));
+  posts.splice(0, posts.length, ...newPosts.map(row => ({...row, author:row.network_members.name})));
+  profiles.splice(0, profiles.length, ...newProfiles.map(row => ({...row, ...contactsByOwner.get(row.owner)})));
+  comments.clear();
+  notes.clear();
+  const byPost = new Map(posts.map(post => [post.id, post]));
+  for (const row of newComments) {
+    const post = byPost.get(row.post_id);
+    if (!post) continue;
+    if (!comments.has(post)) comments.set(post, []);
+    comments.get(post).push({...row, author:row.network_members.name});
+  }
+  for (const row of newNotes) if (byPost.has(row.post_id)) notes.set(byPost.get(row.post_id), row.message);
+  renderFeed();
+  renderProfiles();
+}
+async function submit(form, action) {
+  const control = form.querySelector('[type=submit]');
+  control.disabled = true;
+  try { await action(); }
+  catch (error) {
+    const status = form.querySelector('[data-form-status]') || el('p', '', 'hint');
+    status.setAttribute('role', 'status');
+    status.textContent = error.message;
+    if (!status.isConnected) form.append(status);
+  } finally { control.disabled = false; }
+}
+async function loadMember(name) {
+  const id = networkService.id();
+  if (!id) return;
+  const [rows, staff] = await Promise.all([
+    networkService.rest('members', '?id=eq.' + id),
+    networkService.rest('moderators', '?id=eq.' + id)
+  ]);
+  member = rows[0]?.name || name || networkService.name();
+  if (member && !rows.length) await networkService.put('members', {id,name:member});
+  moderator = staff.length > 0;
+  document.querySelector('[data-open=admin]').hidden = !moderator;
+  document.querySelector('[data-publish]').textContent = member ? 'Pubblica' : 'Iscriviti e pubblica';
+  byId('sign-out').hidden = !member;
+}
 function el(tag, value, className) {
   const node = document.createElement(tag);
   if (value) node.textContent = value;
@@ -85,12 +144,15 @@ function commentSection(post) {
       field.reportValidity();
       return;
     }
-    list.push({author:member, message});
-    comments.set(post, list);
-    const updated = commentSection(post);
-    updated.open = true;
-    section.replaceWith(updated);
-    updated.querySelector('textarea')?.focus();
+    submit(form, async () => {
+      const [saved] = await networkService.rest('comments','',{method:'POST',value:{post_id:post.id,owner:networkService.id(),message},prefer:'return=representation'});
+      list.push({...saved, author:member});
+      comments.set(post, list);
+      const updated = commentSection(post);
+      updated.open = true;
+      section.replaceWith(updated);
+      updated.querySelector('textarea')?.focus();
+    });
   });
   section.append(form);
   return section;
@@ -98,7 +160,7 @@ function commentSection(post) {
 function renderFeed() {
   const city = byId('territory').value.trim().toLocaleLowerCase('it');
   const matches = posts.filter(post => (!filter || post.type === filter) && post.city.toLocaleLowerCase('it').includes(city));
-  byId('results').textContent = matches.length ? matches.length + (matches.length === 1 ? ' post' : ' post trovati') : 'Nessun post corrispondente.';
+  byId('results').textContent = matches.length ? matches.length + (matches.length === 1 ? ' post' : ' post trovati') : 'Non ci sono ancora post per questa ricerca.';
   byId('feed').replaceChildren(...matches.map(post => {
     const card = el('article', '', 'card');
     card.dataset.post = String(posts.indexOf(post));
@@ -107,7 +169,17 @@ function renderFeed() {
     if (post.partner) card.append(el('p', 'In collaborazione con ' + post.partner, 'meta'));
     if (post.outcome) card.append(el('strong', 'Che cosa abbiamo ottenuto'), el('p', post.outcome));
     if (notes.has(post)) card.append(el('p', 'Pet Carpet · ' + notes.get(post)));
-    if (post.file) card.append(attachment(post.file, post.url));
+    if (post.media) card.append(button('Apri allegato', async event => {
+      const trigger = event.currentTarget;
+      trigger.disabled = true;
+      try {
+        const media = attachment({type:post.media_type}, await networkService.mediaUrl(post.media));
+        trigger.replaceWith(media);
+      } catch {
+        trigger.disabled = false;
+        notice('L’allegato non è disponibile. Riprova tra poco.');
+      }
+    }));
     card.append(commentSection(post));
     return card;
   }));
@@ -131,11 +203,11 @@ function appendContacts(parent, profile) {
 function renderProfiles() {
   const directory = byId('directory');
   directory.replaceChildren();
-  if (!profiles.length) directory.append(el('p', 'Presenta la tua realtà per creare la prima scheda di prova.'));
+  if (!profiles.length) directory.append(el('p', 'Presenta la tua realtà per creare la prima scheda.'));
   for (const profile of profiles) {
     const card = el('article');
     card.append(el('h3', profile.name), el('p', profile.kind + ' · ' + profile.city, 'meta'), el('p', profile.description));
-    if (profile.public) appendContacts(card, profile);
+    if (profile.visible) appendContacts(card, profile);
     directory.append(card);
   }
 }
@@ -226,23 +298,26 @@ function setupComposer(form) {
   });
   form.addEventListener('submit', event => {
     event.preventDefault();
-    const post = Object.fromEntries(new FormData(form));
-    post.author = member;
-    if (post.type !== 'Eventi') delete post.date;
-    if (post.type !== 'Esperienze') {
-      delete post.partner;
-      delete post.outcome;
-    }
-    if (pendingFile) {
-      post.file = pendingFile;
-      post.url = URL.createObjectURL(pendingFile);
-    }
-    posts.unshift(post);
-    filter = '';
-    byId('territory').value = '';
-    document.querySelectorAll('[data-filter]').forEach(item => item.setAttribute('aria-pressed', String(!item.dataset.filter)));
-    renderFeed();
-    dialog.close();
+    submit(form, async () => {
+      const {city,type,title,body,date,partner,outcome} = Object.fromEntries(new FormData(form));
+      const post = {city,type,title,body,owner:networkService.id(),date:type === 'Eventi' ? date : null,
+        partner:type === 'Esperienze' ? partner : null,outcome:type === 'Esperienze' ? outcome : null};
+      if (pendingFile) {
+        post.media = await networkService.upload(pendingFile);
+        post.media_type = pendingFile.type.split(';')[0];
+      }
+      try { await networkService.rest('posts','',{method:'POST',value:post}); }
+      catch (error) {
+        if (post.media) await networkService.removeMedia(post.media).catch(() => {});
+        throw error;
+      }
+      filter = '';
+      byId('territory').value = '';
+      document.querySelectorAll('[data-filter]').forEach(item => item.setAttribute('aria-pressed', String(!item.dataset.filter)));
+      dialog.close();
+      notice('Post pubblicato.');
+      await loadNetwork().catch(() => notice('Post salvato. Ricarica per aggiornare il feed.'));
+    });
   });
 }
 function setupInvite() {
@@ -266,81 +341,109 @@ function setupInvite() {
 }
 function openPanel(key, trigger, resume) {
   previousFocus = trigger;
-  const titles = {join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  if (['publish','profile'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
+  if (key === 'admin' && !moderator) return;
+  const titles = {install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
   if (template) body.append(template.content.cloneNode(true));
+  if (key === 'install' && installPrompt) {
+    const control = byId('install-app');
+    control.hidden = false;
+    control.addEventListener('click', async () => {
+      await installPrompt?.prompt();
+      installPrompt = undefined;
+      control.hidden = true;
+    });
+  }
   if (key === 'publish') setupComposer(body.querySelector('form'));
   if (key === 'invite') setupInvite();
-  if (key === 'join') body.querySelector('form').addEventListener('submit', event => {
-    event.preventDefault();
-    member = String(new FormData(event.currentTarget).get('displayName')).trim();
-    if (!member) {
-      event.currentTarget.elements.displayName.value = '';
-      event.currentTarget.reportValidity();
-      return;
-    }
-    document.querySelector('[data-publish]').textContent = 'Pubblica';
-    if (resume) {
-      dialog.addEventListener('close', resume, {once:true});
-      dialog.close();
-    } else {
-      openPanel('publish', trigger);
-    }
-  });
-  if (key === 'profile') body.querySelector('form').addEventListener('submit', event => {
-    event.preventDefault();
-    profiles.unshift(Object.fromEntries(new FormData(event.currentTarget)));
-    renderProfiles();
-    dialog.close();
-  });
+  if (key === 'join' || key === 'login') {
+    const form = body.querySelector('form');
+    form.querySelector('[data-login]')?.addEventListener('click', () => openPanel('login', trigger, resume));
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(form));
+      submit(form, async () => {
+        if (key === 'join') {
+          const name = values.displayName.trim();
+          if (!name) throw new Error('Inserisci il nome da mostrare.');
+          const active = await networkService.signup(values.email,values.password,name)
+            .catch(() => { throw new Error('Iscrizione non riuscita. Verifica l’indirizzo o riprova tra poco.'); });
+          if (!active) {
+            openPanel('login', trigger, resume);
+            body.querySelector('[data-form-status]').textContent = 'Controlla l’email per confermare l’indirizzo. Dopo la conferma torna qui e accedi.';
+            return;
+          }
+        } else {
+          await networkService.login(values.email,values.password)
+            .catch(() => { throw new Error('Controlla email e password e verifica di aver confermato l’indirizzo.'); });
+        }
+        await loadMember(values.displayName);
+        if (!member) throw new Error('Il profilo non è disponibile.');
+        if (resume) {
+          dialog.addEventListener('close', resume, {once:true});
+          dialog.close();
+        } else openPanel('publish', trigger);
+        loadNetwork().catch(() => notice('Aggiornamento del feed non riuscito.'));
+      });
+    });
+  }
+  if (key === 'profile') {
+    const form = body.querySelector('form');
+    const profile = profiles.find(item => item.owner === networkService.id());
+    if (profile) for (const field of ['name','kind','city','description','phone','whatsapp','email']) form.elements[field].value = profile[field] || '';
+    form.elements.public.checked = Boolean(profile?.visible);
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      submit(form, async () => {
+        const {name,kind,city,description,phone,whatsapp,email,public:visible} = Object.fromEntries(new FormData(form));
+        const owner = networkService.id();
+        await networkService.put('profiles',{owner,name,kind,city,description});
+        await networkService.put('contacts',{owner,phone,whatsapp,email,visible:Boolean(visible)});
+        dialog.close();
+        notice('Scheda salvata.');
+        await loadNetwork().catch(() => notice('Scheda salvata. Ricarica per visualizzarla.'));
+      });
+    });
+  }
   if (key === 'privacy') {
-    const privacyContact = el('a', 'petcarpetfestival@gmail.com');
-    privacyContact.href = 'mailto:petcarpetfestival@gmail.com?subject=Privacy%20VPET%20Network';
-    body.append(el('p','VPET Network è un progetto dell’Associazione Pet Carpet, Via Alessandro Castelli 36 F, Roma.'), privacyContact,
-      el('p','Questa anteprima conserva i dati inseriti nella memoria della pagina fino al suo ricaricamento. Usa nomi, recapiti e allegati fittizi.'),
-      el('p','Il microfono si attiva solo su richiesta e il vocale resta nella sessione di prova. Gli inviti aprono il canale che scegli, dove decidi tu se inviarli. WhatsApp è un servizio esterno.'),
-      el('p','Per il lancio pubblico serviranno l’informativa completa di Pet Carpet, le regole del network e le preferenze di contatto per ogni canale.'));
+    const link = el('a', 'Leggi privacy e regole di VPET');
+    link.href = '/network/privacy.html';
+    body.append(link);
   }
   if (key === 'admin') {
-    for (const [post, list] of comments) {
-      for (const comment of list) {
-        const card = el('article', '', 'card');
-        card.append(el('div', 'Commento su ' + post.title, 'meta'), el('strong', comment.author), el('p', comment.message),
-          button('Rimuovi commento dalla prova', () => {
-            list.splice(list.indexOf(comment), 1);
-            renderFeed();
-            dialog.close();
-          }));
-        body.append(card);
-      }
-    }
-    body.append(el('p','Simulazione degli strumenti di Pet Carpet. Usa solo dati fittizi.'));
+    body.append(el('p','Recapiti delle realtà e moderazione dei contenuti.'));
     for (const profile of profiles) {
       const card = el('article', '', 'card');
       card.append(el('h3', profile.name), el('p', profile.kind + ' · ' + profile.city, 'meta'));
       appendContacts(card, profile);
       body.append(card);
     }
-    for (const post of posts.filter(item => !item.sample)) {
+    const moderation = async action => {
+      try {
+        await action();
+        dialog.close();
+        await loadNetwork();
+      } catch { notice('Operazione non riuscita. Riprova.'); }
+    };
+    for (const post of posts) {
       const card = el('article', '', 'card');
       const note = el('input');
       note.maxLength = 500;
       note.value = notes.get(post) || '';
       note.setAttribute('aria-label', 'Integrazione della redazione');
-      card.append(el('h3', post.title), note, button('Salva nota Pet Carpet', () => {
-        notes.set(post, note.value.trim());
-        renderFeed();
-        dialog.close();
-      }), button('Rimuovi dalla prova', () => {
-        posts.splice(posts.indexOf(post), 1);
-        notes.delete(post);
-        comments.delete(post);
-        if (post.url) URL.revokeObjectURL(post.url);
-        renderFeed();
-        dialog.close();
-      }));
+      card.append(el('h3', post.title), note,
+        button('Salva nota Pet Carpet', () => moderation(() => networkService.put('notes',{post_id:post.id,message:note.value.trim()}))),
+        button('Rimuovi post', () => moderation(async () => {
+          await networkService.rest('posts','?id=eq.' + post.id,{method:'DELETE'});
+          if (post.media) await networkService.removeMedia(post.media);
+        })));
+      for (const comment of comments.get(post) || []) {
+        card.append(el('p', comment.author + ' · ' + comment.message),
+          button('Rimuovi commento', () => moderation(() => networkService.rest('comments','?id=eq.' + comment.id,{method:'DELETE'}))));
+      }
       body.append(card);
     }
   }
@@ -363,4 +466,15 @@ const publishButton = document.querySelector('[data-publish]');
 publishButton.addEventListener('click', () => openPanel(member ? 'publish' : 'join', publishButton));
 renderFeed();
 renderProfiles();
-if (new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
+byId('sign-out').addEventListener('click', async () => {
+  await networkService.logout().catch(() => {});
+  location.reload();
+});
+(async () => {
+  try {
+    await networkService.restore();
+    await loadMember();
+    await loadNetwork();
+  } catch { notice('Il network non è disponibile in questo momento. Riprova tra poco.'); }
+  if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
+})();
