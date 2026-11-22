@@ -70,7 +70,7 @@ function showView(isNetwork, moveFocus = false) {
   }
   if (moveFocus) {
     const panel = isNetwork ? host : services;
-    switcher.scrollIntoView({block:'start'});
+    panel.scrollIntoView({block:'start'});
     panel.focus({preventScroll:true});
   }
 }
