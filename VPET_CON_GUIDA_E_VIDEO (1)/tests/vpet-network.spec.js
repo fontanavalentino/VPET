@@ -133,6 +133,8 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   await page.route('https://enmhknczdgtivjiwszwk.supabase.co/rest/**', route =>
     route.fulfill({json:[],headers:{'Access-Control-Allow-Origin':'*'}}));
   await page.goto('/');
+  await page.getByText('VPET è il sito di Pet Carpet per chi ama e aiuta gli animali.', {exact:true}).waitFor();
+  await page.getByRole('button',{name:'Vai alla dashboard',exact:true}).waitFor();
   await page.getByRole('button',{name:'Entra nel network',exact:true}).click();
   const network = page.locator('#network');
   await network.getByRole('heading',{name:'Chi cerca, chi offre'}).waitFor();
