@@ -150,6 +150,9 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   const views = page.getByRole('navigation',{name:'Sezioni VPET'});
   assert.equal(await views.getByRole('link',{name:'Network',exact:true}).getAttribute('aria-current'),'location');
   assert.equal(await page.locator('#vpet-servizi').isVisible(),false);
+  await network.getByRole('heading',{name:'Sei un professionista e vuoi entrare nella rete?'}).scrollIntoViewIfNeeded();
+  const sticky = await views.boundingBox();
+  assert(sticky && sticky.y >= -1 && sticky.y < 5, 'La barra resta visibile dopo lo scorrimento');
   await views.getByRole('link',{name:'Servizi VPET',exact:true}).click();
   assert.equal(await network.isVisible(),false);
   assert.equal(await views.getByRole('link',{name:'Servizi VPET',exact:true}).getAttribute('aria-current'),'location');
