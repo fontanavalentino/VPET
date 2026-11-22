@@ -14,6 +14,7 @@ let previewUrl;
 let previousFocus;
 let member;
 let moderator = false;
+let googleAvailable = false;
 let displayPosts = [];
 let displayIndex = 0;
 let displayTimer;
@@ -419,7 +420,7 @@ function openPanel(key, trigger, resume) {
   previousFocus = trigger;
   if (['publish','profile'].includes(key) && !member) return openPanel('join', trigger, () => openPanel(key, trigger));
   if (key === 'admin' && !moderator) return;
-  const titles = {install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
+  const titles = {'google-profile':'Completa il tuo profilo',install:'Installa VPET',login:'Accedi a VPET',join:'Iscriviti e pubblica',publish:'Pubblica nel network',profile:trigger?.dataset.profileKind ? 'Presentati come professionista' : 'Presenta la tua realtà',invite:'Invita una realtà',privacy:'Privacy e pubblicazione',admin:'Rubrica e moderazione di prova'};
   byId('dialog-title').textContent = titles[key];
   body.replaceChildren();
   const template = byId(key);
@@ -435,8 +436,33 @@ function openPanel(key, trigger, resume) {
   }
   if (key === 'publish') setupComposer(body.querySelector('form'));
   if (key === 'invite') setupInvite();
+  if (key === 'google-profile') {
+    const form = body.querySelector('form');
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      submit(form, async () => {
+        const name = form.elements.displayName.value.trim();
+        if (!name) throw new Error('Inserisci il nome da mostrare.');
+        await loadMember(name);
+        if (resume) resume();
+        else openPanel('publish', trigger);
+      });
+    });
+  }
   if (key === 'join' || key === 'login') {
     const form = body.querySelector('form');
+    const google = body.querySelector('[data-google]');
+    {
+      if (googleAvailable) body.querySelector('[data-google-entry]').hidden = false;
+      google.addEventListener('click', async () => {
+        google.disabled = true;
+        try { await networkService.googleStart(trigger?.dataset.profileKind ? 'professionista' : trigger?.dataset.open === 'profile' ? 'profile' : 'publish'); }
+        catch {
+          form.querySelector('[data-form-status]').textContent = 'Non riesco ad aprire Google. Riprova o continua con email.';
+          google.disabled = false;
+        }
+      });
+    }
     form.querySelector('[data-login]')?.addEventListener('click', () => openPanel('login', trigger, resume));
     form.addEventListener('submit', event => {
       event.preventDefault();
@@ -573,10 +599,25 @@ byId('sign-out').addEventListener('click', async () => {
   location.reload();
 });
 (async () => {
+  const discovery = networkService.googleAvailable().then(value => {
+    googleAvailable = value;
+    if (value && dialog.open) body.querySelector('[data-google-entry]')?.removeAttribute('hidden');
+  });
+  let destination;
+  try { destination = await networkService.googleReturn(); }
+  catch { notice('Accesso Google interrotto. Riprova da Iscriviti e pubblica.'); }
   try {
-    await networkService.restore();
+    if (!destination) await networkService.restore();
     await loadMember();
     await loadNetwork();
   } catch { notice('Il network non è disponibile in questo momento. Riprova tra poco.'); }
-  if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
+  await discovery;
+  if (destination) {
+    const isProfile = ['professionista','profile'].includes(destination);
+    const trigger = destination === 'professionista' ? document.querySelector('[data-profile-kind=Professionista]') :
+      isProfile ? document.querySelector('[data-open=profile]') : publishButton;
+    const next = () => openPanel(isProfile ? 'profile' : 'publish', trigger);
+    if (member) next();
+    else openPanel('google-profile', trigger, next);
+  } else if (!member && new URLSearchParams(location.search).has('iscriviti')) openPanel('join', publishButton);
 })();

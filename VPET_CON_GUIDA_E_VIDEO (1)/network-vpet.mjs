@@ -59,7 +59,7 @@ document.getElementById('vpetOpenNetwork')?.addEventListener('click', () => {
   history.replaceState(null, '', '#network');
   openNetwork();
 });
-if (location.hash === '#network' || new URLSearchParams(location.search).has('iscriviti')) openNetwork();
+if (location.hash === '#network' || (new URLSearchParams(location.search).has('iscriviti') || new URLSearchParams(location.search).get('accesso') === 'google')) openNetwork();
 root.querySelector('a[href="#vpet-servizi"]')?.addEventListener('click', () => {
   document.getElementById('vpet-servizi')?.focus();
 });`;

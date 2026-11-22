@@ -65,7 +65,7 @@ for (const [age,width,zoom] of profiles) test('VPET Network · scenario ' + age,
    await page.getByLabel('Email',{exact:true}).fill('test@example.invalid');
    await page.getByLabel('Password',{exact:true}).fill('Password-test-2026');
    await page.getByRole('checkbox').check();
-   await page.getByRole('button',{name:'Continua e pubblica'}).click();
+   await page.getByRole('button',{name:'Iscriviti con email'}).click();
    await page.getByLabel('Tipo di post').selectOption('Esperienze');
    await page.getByRole('dialog').getByLabel('Territorio').fill('Roma');
    await page.getByLabel('Titolo',{exact:true}).fill('Prova completa');
@@ -153,4 +153,43 @@ for (const [age,width,zoom] of profiles) test('VPET originale e Network fusi · 
   await page.getByRole('heading',{name:'Guida alle Razze',exact:true}).waitFor();
   await page.getByRole('button',{name:/24 razze feline/}).waitFor();
   assert.deepEqual(errors,[]);
+});
+
+test('Continua con Google porta al profilo pubblico e al primo post', async ({page}) => {
+  const origin = 'https://enmhknczdgtivjiwszwk.supabase.co';
+  const headers = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*'};
+  let publicName;
+  await page.route(origin + '/auth/v1/**', async route => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/settings')) return route.fulfill({json:{external:{google:true}},headers});
+    if (url.pathname.endsWith('/authorize')) {
+      assert.equal(url.searchParams.get('provider'),'google');
+      assert.equal(url.searchParams.get('code_challenge_method'),'s256');
+      assert(url.searchParams.get('code_challenge').length >= 43);
+      const callback = new URL(url.searchParams.get('redirect_to'));
+      callback.searchParams.set('code','test-google-code');
+      return route.fulfill({status:302,headers:{Location:callback.href}});
+    }
+    const body = route.request().postDataJSON();
+    assert.equal(body.auth_code,'test-google-code');
+    assert.equal(body.code_verifier.length,64);
+    return route.fulfill({json:{access_token:'test',refresh_token:'test-refresh',user:{id:'1',app_metadata:{provider:'google'}}},headers});
+  });
+  await page.route(origin + '/rest/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('network_members') && route.request().method() === 'POST') publicName = route.request().postDataJSON().name;
+    return route.fulfill({json:[],headers});
+  });
+  await page.goto('/');
+  await page.getByRole('button',{name:'Entra nel network',exact:true}).click();
+  await page.getByRole('button',{name:'Iscriviti e pubblica',exact:true}).click();
+  await page.getByRole('button',{name:'Continua con Google',exact:true}).click();
+  await page.getByRole('heading',{name:'Completa il tuo profilo'}).waitFor();
+  assert.equal(publicName,undefined);
+  await page.getByLabel('Nome da mostrare nel network').fill('Utente Google QA');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button',{name:'Continua',exact:true}).click();
+  await page.getByRole('heading',{name:'Pubblica nel network'}).waitFor();
+  assert.equal(publicName,'Utente Google QA');
+  assert(!new URL(page.url()).searchParams.has('code'));
 });

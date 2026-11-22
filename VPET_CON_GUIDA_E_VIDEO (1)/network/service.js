@@ -4,6 +4,7 @@ const networkService = (() => {
   const endpoint = 'https://enmhknczdgtivjiwszwk.supabase.co';
   const key = 'sb_publishable_ykbUOvps1Ct8EQ2ud-6Fxw_21UUK64v';
   const sessionKey = 'vpet-network-session';
+  const googleFlowKey = 'vpet-google-flow';
   let session;
   try { session = JSON.parse(sessionStorage.getItem(sessionKey)); } catch {}
   function save(value) {
@@ -27,6 +28,35 @@ const networkService = (() => {
   return {
     rest,
     id: () => session?.user?.id,
+    async googleAvailable() {
+      try {
+        const settings = await request('/auth/v1/settings', {anonymous:true});
+        return settings.external?.google === true;
+      } catch { return false; }
+    },
+    async googleStart(destination) {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      const verifier = Array.from(bytes, byte => byte.toString(16).padStart(2,'0')).join('');
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(hash))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+      const returnUrl = new URL(location.pathname,location.origin);
+      returnUrl.searchParams.set('accesso','google');
+      sessionStorage.setItem(googleFlowKey,JSON.stringify({verifier,destination}));
+      const query = new URLSearchParams({provider:'google',redirect_to:returnUrl.href,code_challenge:challenge,code_challenge_method:'s256'});
+      location.assign(endpoint + '/auth/v1/authorize?' + query);
+    },
+    async googleReturn() {
+      const url = new URL(location.href);
+      if (url.searchParams.get('accesso') !== 'google') return null;
+      const code = url.searchParams.get('code');
+      const flow = JSON.parse(sessionStorage.getItem(googleFlowKey) || 'null');
+      sessionStorage.removeItem(googleFlowKey);
+      for (const key of ['accesso','code','error','error_code','error_description']) url.searchParams.delete(key);
+      history.replaceState(null,'',url.pathname + url.search);
+      if (!code || !flow?.verifier) throw new Error('Accesso Google interrotto. Riprova.');
+      save(await auth('token?grant_type=pkce',{auth_code:code,code_verifier:flow.verifier}));
+      return flow.destination;
+    },
     async restore() {
       if (!session?.refresh_token) return;
       try { save(await auth('token?grant_type=refresh_token', {refresh_token:session.refresh_token})); }

@@ -97,6 +97,11 @@
 </div>
 </template>
 <template id="join">
+<div class="google-entry" data-google-entry hidden>
+<button type="button" class="primary" data-google>Continua con Google</button>
+<p class="hint">Scegli il tuo account Google e prosegui senza creare una password per VPET.</p>
+<p class="hint">Oppure usa la tua email</p>
+</div>
 <form>
 <label>Nome da mostrare nel network <input name="displayName" autocomplete="nickname" maxlength="80" required></label>
 <label>Email <input name="email" autocomplete="email" type="email" required></label>
@@ -105,15 +110,29 @@
 <p class="hint">Usa un nome pubblico. L’email di accesso resta privata. <a href="/network/privacy.html">Privacy e regole del network</a></p>
 <button type="button" data-login>Ho già un account</button>
 <p class="hint" data-form-status role="status"></p>
-<button class="primary" type="submit">Continua e pubblica</button>
+<button class="primary" type="submit">Iscriviti con email</button>
 </form>
 </template>
 <template id="login">
+<div class="google-entry" data-google-entry hidden>
+<button type="button" class="primary" data-google>Continua con Google</button>
+<p class="hint">Scegli il tuo account Google e prosegui senza creare una password per VPET.</p>
+<p class="hint">Oppure usa la tua email</p>
+</div>
 <form>
 <label>Email <input name="email" autocomplete="email" type="email" required></label>
 <label>Password <input name="password" autocomplete="current-password" type="password" required></label>
 <p data-form-status class="hint" role="status"></p>
 <button class="primary" type="submit">Accedi</button>
+</form>
+</template>
+<template id="google-profile">
+<form>
+<label>Nome da mostrare nel network <input name="displayName" autocomplete="nickname" maxlength="80" required></label>
+<label class="check"><input type="checkbox" required> Ho almeno 18 anni e accetto le regole di pubblicazione.</label>
+<p class="hint">Questo nome apparirà sui tuoi post. <a href="/network/privacy.html">Privacy e regole del network</a></p>
+<p class="hint" data-form-status role="status"></p>
+<button class="primary" type="submit">Continua</button>
 </form>
 </template>
 <template id="publish">

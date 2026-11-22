@@ -76,3 +76,6 @@ form input,form select,form textarea,.territory input{min-width:0}
 #professionisti ul{padding-inline-start:1.2em}
 #professionisti li+li{margin-top:.55rem}
 #professionisti .actions{display:flex;margin-top:.75rem}
+.google-entry{border-bottom:1px solid var(--line);padding:.5rem 0 .9rem;margin-top:.75rem}
+.google-entry button{width:100%;min-height:48px}
+.google-entry .hint{margin-top:.5rem}
