@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Il network di Pet Carpet per le associazioni e le persone che si prendono cura degli animali.">
+<title>VPET Network · Pet Carpet</title>
+<link rel="stylesheet" href="/network/network.css">
+<script defer src="/network/network.js"></script>
+</head>
+<body>
+<header class="bar"><a class="brand" href="/network/">VPET <span>Network</span></a><a href="/">Tutti i servizi VPET</a></header>
+<main>
+<section class="hero">
+<div class="hero-copy">
+<p class="eyebrow">IL NETWORK DI PET CARPET</p>
+<h1>Quando ci diamo una zampa, cambia tutto.</h1>
+<p>Un rifugio cerca aiuto. Qualcuno ha tempo da donare. Qui possono trovarsi.</p>
+<div class="actions"><button class="primary" data-open="publish">Pubblica</button><button data-open="profile">Presenta la tua realtà</button><button data-open="invite">Invita una realtà</button></div>
+</div>
+</section>
+<div class="layout">
+<section aria-labelledby="feed-title">
+<h2 id="feed-title">La rete in movimento</h2>
+<p class="intro">Scopri chi fa, chi cerca e chi può dare una mano.</p>
+<div class="filters" aria-label="Filtra i post"><button aria-pressed="true" data-filter="">Tutti</button><button aria-pressed="false" data-filter="Eventi">Eventi</button><button aria-pressed="false" data-filter="Cerchiamo">Cerchiamo</button><button aria-pressed="false" data-filter="Offriamo">Offriamo</button><button aria-pressed="false" data-filter="Storie">Storie</button></div>
+<label class="territory">Cerca per territorio <input id="territory" placeholder="Es. Roma" type="search"></label>
+<p id="results" role="status"></p>
+<div id="feed"></div>
+</section>
+<aside>
+<div class="panel"><p class="eyebrow">FARE RETE</p><h2>Quello che puoi dare può essere proprio ciò che manca a qualcuno.</h2><button data-open="invite">Invita una realtà</button></div>
+<div class="panel"><h2>Le realtà del network</h2><div id="directory"></div></div>
+</aside>
+</div>
+</main>
+<footer><p>VPET Network · Pet Carpet</p><button data-open="privacy">Privacy e pubblicazione</button><button data-open="admin">Rubrica di prova</button></footer>
+<dialog id="dialog" aria-labelledby="dialog-title"><header><h2 id="dialog-title"></h2><button id="close" aria-label="Chiudi">×</button></header><div id="dialog-body"></div></dialog>
+<template id="publish">
+<form>
+<label>Chi pubblica <input name="author" maxlength="80" required></label>
+<div class="pair"><label>Tipo di post <select name="type"><option>Storie</option><option>Eventi</option><option>Cerchiamo</option><option>Offriamo</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
+<label>Titolo <input name="title" maxlength="100" required></label>
+<label>Raccontaci <textarea name="body" maxlength="2000" required></textarea></label>
+<label id="event-date" hidden>Data dell’evento <input name="date" type="date"></label>
+<label>Foto, video o vocale <input id="attachment" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm"></label>
+<p class="hint">Un allegato per post, fino a 20 MB. Carica un vocale dal telefono oppure registralo qui.</p>
+<button type="button" id="record">Registra un vocale</button>
+<div id="media-preview"></div>
+<label class="check"><input type="checkbox" required> Ho il diritto di condividere il contenuto e ho le autorizzazioni necessarie per le persone riconoscibili.</label>
+<p class="hint">Anteprima. Usa contenuti fittizi. Il post sarà visibile in questa sessione di prova.</p>
+<button class="primary" type="submit">Pubblica nella prova</button>
+</form>
+</template>
+<template id="profile">
+<form>
+<label>Nome della realtà <input name="name" maxlength="90" required></label>
+<div class="pair"><label>Tipo <select name="kind"><option>Associazione</option><option>Azienda</option><option>Altra realtà</option></select></label><label>Territorio <input name="city" maxlength="80" required></label></div>
+<label>Chi siete e cosa fate <textarea name="description" maxlength="1200" required></textarea></label>
+<label>Telefono <input name="phone" type="tel" maxlength="22"></label>
+<label>WhatsApp <input name="whatsapp" type="tel" maxlength="22" placeholder="+39"></label>
+<label>Email <input name="email" type="email" maxlength="150"></label>
+<label class="check"><input type="checkbox" name="public"> Mostra i recapiti sulla pagina della realtà</label>
+<p class="hint">In anteprima usa recapiti fittizi. I recapiti nascosti restano visibili nella rubrica di prova.</p>
+<button class="primary" type="submit">Crea la pagina di prova</button>
+</form>
+</template>
+<template id="invite">
+<form>
+<label>Chi vuoi invitare? <select name="kind"><option>Associazione</option><option>Azienda</option><option>Altra realtà</option></select></label>
+<label>Nome della realtà <input name="name" maxlength="90" required></label>
+<p class="hint">Copia l’invito e condividilo con chi si aspetta di riceverlo. Puoi scegliere il destinatario direttamente nella tua app.</p>
+<button class="primary" type="submit">Prepara l’invito</button>
+<div id="invitation"></div>
+</form>
+</template>
+</body>
+</html>

@@ -13,7 +13,8 @@ const steps=[
   'emergenze-vpet.mjs',
   'final-polish-vpet.mjs',
   'home-upgrade.mjs',
-  'deep-audit-vpet.mjs'
+  'deep-audit-vpet.mjs',
+  'network-vpet.mjs'
 ];
 
 for(const step of steps){
